@@ -13,6 +13,11 @@
 <em>Built with the tools and technologies:</em>
 
 <img src="https://img.shields.io/badge/Python-3776AB.svg?style=default&logo=Python&logoColor=white" alt="Python">
+<img src="https://img.shields.io/github/last-commit/galihkjaya/grassdoro-app?logo=github&label=Last%20Commit" alt="Last Commit">
+
+<br>
+
+[<img src="https://img.shields.io/badge/Download-Grass%20Doro-green?style=for-the-badge&logo=googledrive" alt="Download"/>](https://drive.google.com/file/d/1WdiOjPGGtE72ageykf2D7KvpZmgBOobh/view?usp=sharing)
 
 </div>
 <br>
@@ -214,9 +219,8 @@ Install the required Python packages:
 
 ## Contributing
 
-- **💬 [Join the Discussions](https://LOCAL///discussions)**: Share your insights, provide feedback, or ask questions.
-- **🐛 [Report Issues](https://LOCAL///issues)**: Submit bugs found or log feature requests for the `` project.
-- **💡 [Submit Pull Requests](https://LOCAL///blob/main/CONTRIBUTING.md)**: Review open PRs, and submit your own PRs.
+- **� [Report Issues](mailto:kurenaimazu@gmail.com?subject=Reporting%20Grass%20Doro%20Issues)**: Submit bugs found or log feature requests for the project.
+- **💡 [Submit Pull Requests](https://github.com/galihkjaya/grassdoro-app/pulls)**: Review open PRs, and submit your own PRs.
 
 <details closed>
 <summary>Contributing Guidelines</summary>
