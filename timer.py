@@ -1,67 +1,46 @@
 import time
 
-def format_time(secodngs):
-    minutes = seconds // 60
-    seconds = seconds % 60
-    return f"{minutes:02d}:{seconds:02d}"
+class PomodoroTimer:
+    def __init__(self, focus_min, break_min, total_min):
+        self.focus_seconds = focus_min * 60
+        self.break_seconds = break_min * 60
+        self.total_seconds = total_min * 60
+        self.elapsed = 0
+        self.session = 1
 
-def countdown(duration, label):
-    while duration > 0:
-        print(f"{label} | {format_time(duration)}", end='\r')
-        time.sleep(1)
-        duration -= 1
-    print()
+    def format_time(self, seconds):
+        minutes = seconds // 60
+        seconds = seconds % 60
+        return f"{minutes:02d}:{seconds:02d}"
 
-def get_minutes(prompt):
-    while True:
-        try:
-            value = int(input(prompt))
-            if value <= 0:
-                print("Enter a number greater than 0.")
-                continue
-            return value
-        except ValueError:
-            print("Please enter a valid number.")
+    def countdown(self, seconds, label, callback=None):
+        while seconds > 0:
+            if callback:
+                callback(label, seconds)
+            else:
+                print(f"{label} | {self.format_time(seconds)}", end="\r")
 
+            time.sleep(1)
+            seconds -= 1
 
-def main():
-    print("=== Custom Pomodoro Timer ===")
+        print()
 
-    focus_minutes = get_minutes("Focus time (minutes): ")
-    break_minutes = get_minutes("Break time (minutes): ")
-    total_minutes = get_minutes("Total duration (minutes): ")
+    def run(self, callback=None):
+        while self.elapsed < self.total_seconds:
 
-    focus_seconds = focus_minutes * 60
-    break_seconds = break_minutes * 60
-    total_seconds = total_minutes * 60
+            remaining = self.total_seconds - self.elapsed
+            focus_time = min(self.focus_seconds, remaining)
 
-    elapsed = 0
-    session = 1
+            self.countdown(focus_time, "FOCUS", callback)
+            self.elapsed += focus_time
 
-    print("\nStarting Pomodoro...\n")
+            if self.elapsed >= self.total_seconds:
+                break
 
-    while elapsed < total_seconds:
-        print(f"Session {session} — FOCUS")
-        remaining = total_seconds - elapsed
-        current_focus = min(focus_seconds, remaining)
+            remaining = self.total_seconds - self.elapsed
+            break_time = min(self.break_seconds, remaining)
 
-        countdown(current_focus, "FOCUS")
-        elapsed += current_focus
+            self.countdown(break_time, "BREAK", callback)
+            self.elapsed += break_time
 
-        if elapsed >= total_seconds:
-            break
-
-        print(f"Session {session} — BREAK")
-        remaining = total_seconds - elapsed
-        current_break = min(break_seconds, remaining)
-
-        countdown(current_break, "BREAK")
-        elapsed += current_break
-
-        session += 1
-
-    print("\n Done! Total focus time completed.")
-
-
-if __name__ == "__main__":
-    main()
+            self.session += 1
