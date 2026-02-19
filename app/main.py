@@ -19,8 +19,7 @@ def main():
                 rest,
                 total,
                 music_enabled=ui.music_enabled.get(),
-                prayer_enabled=ui.prayer_enabled.get(),
-                location=ui.location_entry.get()
+                prayer_schedule=ui.prayer_schedule,
             )
 
             current_timer["timer"] = timer
@@ -28,6 +27,8 @@ def main():
 
         except ValueError:
             ui.status_label.config(text="Enter valid numbers!")
+        except Exception as e:
+            ui.status_label.config(text=f"Error: {str(e)}")
 
     ui.apply_button.config(command=apply_time)
     ui.start()

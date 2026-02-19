@@ -79,6 +79,11 @@ class TimerUI:
 
         self.root.bind("<Configure>", self.resize_text)
 
+        # Keyboard navigation
+        self.focus_entry.bind("<Return>", lambda e: self.break_entry.focus())
+        self.break_entry.bind("<Return>", lambda e: self.total_entry.focus())
+        self.total_entry.bind("<Return>", lambda e: self.apply_button.invoke())
+
     def _add_field(self, label):
         tk.Label(self.setup_frame, text=label).pack()
         entry = tk.Entry(self.setup_frame)
