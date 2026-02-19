@@ -3,9 +3,7 @@
 <!-- HEADER STYLE: CLASSIC -->
 <div align="center">
 
-<img src="readmeai/assets/logos/purple.svg" width="30%" style="position: relative; top: 0; right: 0;" alt="Project Logo"/>
-
-# <code>❯ REPLACE-ME</code>
+# <code>❯ Grass Doro</code>
 
 <em></em>
 
@@ -27,28 +25,28 @@
 - [Overview](#overview)
 - [Features](#features)
 - [Project Structure](#project-structure)
-    - [Project Index](#project-index)
+  - [Project Index](#project-index)
 - [Getting Started](#getting-started)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [Usage](#usage)
-    - [Testing](#testing)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+  - [Usage](#usage)
 - [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
-- [Acknowledgments](#acknowledgments)
 
 ---
 
 ## Overview
 
-
+A customizable Pomodoro timer for Windows that enforces breaks with a lock screen, plays optional lofi focus music, and supports automatic prayer-time reminders based on user location.
 
 ---
 
 ## Features
 
-<code>❯ REPLACE-ME</code>
+- Fullscreen lock screen during breaks
+- Optional lofi background music
+- Automatic prayer-time pause (based on user location)
 
 ---
 
@@ -88,6 +86,8 @@
 					<th style='text-align: left; padding: 8px;'>Summary</th>
 				</tr>
 			</thead>
+			<tbody>
+			</tbody>
 			</table>
 		</blockquote>
 	</details>
@@ -104,95 +104,33 @@
 					<th style='text-align: left; padding: 8px;'>Summary</th>
 				</tr>
 			</thead>
+			<tbody>
 				<tr style='border-bottom: 1px solid #eee;'>
 					<td style='padding: 8px;'><b><a href='/app/lockscreen.py'>lockscreen.py</a></b></td>
-					<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
+					<td style='padding: 8px;'>Fullscreen lock screen with countdown timer and emergency exit functionality</td>
 				</tr>
 				<tr style='border-bottom: 1px solid #eee;'>
 					<td style='padding: 8px;'><b><a href='/app/main.py'>main.py</a></b></td>
-					<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-				</tr>
-				<tr style='border-bottom: 1px solid #eee;'>
-					<td style='padding: 8px;'><b><a href='/app/main.spec'>main.spec</a></b></td>
-					<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
+					<td style='padding: 8px;'>Application entry point and timer initialization</td>
 				</tr>
 				<tr style='border-bottom: 1px solid #eee;'>
 					<td style='padding: 8px;'><b><a href='/app/music_player.py'>music_player.py</a></b></td>
-					<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
+					<td style='padding: 8px;'>Pygame-based music player for lofi background music during focus sessions</td>
 				</tr>
 				<tr style='border-bottom: 1px solid #eee;'>
 					<td style='padding: 8px;'><b><a href='/app/prayer_times.py'>prayer_times.py</a></b></td>
-					<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
+					<td style='padding: 8px;'>Prayer time calculation and location-based scheduling</td>
 				</tr>
 				<tr style='border-bottom: 1px solid #eee;'>
 					<td style='padding: 8px;'><b><a href='/app/timer.py'>timer.py</a></b></td>
-					<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
+					<td style='padding: 8px;'>Main Pomodoro timer logic with prayer time integration</td>
 				</tr>
 				<tr style='border-bottom: 1px solid #eee;'>
 					<td style='padding: 8px;'><b><a href='/app/ui.py'>ui.py</a></b></td>
-					<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
+					<td style='padding: 8px;'>Tkinter-based GUI for timer configuration and display</td>
 				</tr>
+			</tbody>
 			</table>
-			<!-- build Submodule -->
-			<details>
-				<summary><b>build</b></summary>
-				<blockquote>
-					<div class='directory-path' style='padding: 8px 0; color: #666;'>
-						<code><b>⦿ app.build</b></code>
-					<!-- main Submodule -->
-					<details>
-						<summary><b>main</b></summary>
-						<blockquote>
-							<div class='directory-path' style='padding: 8px 0; color: #666;'>
-								<code><b>⦿ app.build.main</b></code>
-							<table style='width: 100%; border-collapse: collapse;'>
-							<thead>
-								<tr style='background-color: #f8f9fa;'>
-									<th style='width: 30%; text-align: left; padding: 8px;'>File Name</th>
-									<th style='text-align: left; padding: 8px;'>Summary</th>
-								</tr>
-							</thead>
-								<tr style='border-bottom: 1px solid #eee;'>
-									<td style='padding: 8px;'><b><a href='/app/build/main/Analysis-00.toc'>Analysis-00.toc</a></b></td>
-									<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-								</tr>
-								<tr style='border-bottom: 1px solid #eee;'>
-									<td style='padding: 8px;'><b><a href='/app/build/main/COLLECT-00.toc'>COLLECT-00.toc</a></b></td>
-									<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-								</tr>
-								<tr style='border-bottom: 1px solid #eee;'>
-									<td style='padding: 8px;'><b><a href='/app/build/main/EXE-00.toc'>EXE-00.toc</a></b></td>
-									<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-								</tr>
-								<tr style='border-bottom: 1px solid #eee;'>
-									<td style='padding: 8px;'><b><a href='/app/build/main/main.pkg'>main.pkg</a></b></td>
-									<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-								</tr>
-								<tr style='border-bottom: 1px solid #eee;'>
-									<td style='padding: 8px;'><b><a href='/app/build/main/PKG-00.toc'>PKG-00.toc</a></b></td>
-									<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-								</tr>
-								<tr style='border-bottom: 1px solid #eee;'>
-									<td style='padding: 8px;'><b><a href='/app/build/main/PYZ-00.pyz'>PYZ-00.pyz</a></b></td>
-									<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-								</tr>
-								<tr style='border-bottom: 1px solid #eee;'>
-									<td style='padding: 8px;'><b><a href='/app/build/main/PYZ-00.toc'>PYZ-00.toc</a></b></td>
-									<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-								</tr>
-								<tr style='border-bottom: 1px solid #eee;'>
-									<td style='padding: 8px;'><b><a href='/app/build/main/warn-main.txt'>warn-main.txt</a></b></td>
-									<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-								</tr>
-								<tr style='border-bottom: 1px solid #eee;'>
-									<td style='padding: 8px;'><b><a href='/app/build/main/xref-main.html'>xref-main.html</a></b></td>
-									<td style='padding: 8px;'>Code>❯ REPLACE-ME</code></td>
-								</tr>
-							</table>
-						</blockquote>
-					</details>
-				</blockquote>
-			</details>
 		</blockquote>
 	</details>
 </details>
@@ -203,47 +141,72 @@
 
 ### Prerequisites
 
-This project requires the following dependencies:
+This project requires:
 
-- **Programming Language:** Python
+- **Python** 3.8+
+- **Windows OS** (for fullscreen lock screen)
+
+### Dependencies
+
+Install the required Python packages:
+
+- `tkinter` (built-in with Python)
+- `pygame` (for music playback)
+- `praytimes` (for prayer time calculations)
+- `geopy` (for location geocoding)
 
 ### Installation
 
-Build  from the source and intsall dependencies:
-
 1. **Clone the repository:**
 
-    ```sh
-    ❯ git clone ../
-    ```
+   ```sh
+   git clone https://github.com/galihkjaya/grassdoro-app.git
+   cd grassdoro-app
+   ```
 
-2. **Navigate to the project directory:**
+2. **Create a virtual environment (optional but recommended):**
 
-    ```sh
-    ❯ cd 
-    ```
+   ```sh
+   python -m venv venv
+   venv\Scripts\activate
+   ```
 
 3. **Install the dependencies:**
 
-echo 'INSERT-INSTALL-COMMAND-HERE'
+   ```sh
+   pip install pygame praytimes geopy
+   ```
 
 ### Usage
 
-Run the project with:
+1. **Navigate to the app directory:**
 
-echo 'INSERT-RUN-COMMAND-HERE'
+   ```sh
+   cd app
+   ```
 
-### Testing
+2. **Run the application:**
 
- uses the {__test_framework__} test framework. Run the test suite with:
+   ```sh
+   python main.py
+   ```
 
-echo 'INSERT-TEST-COMMAND-HERE'
+3. **Configure your session:**
+   - Enter focus time (minutes)
+   - Enter break time (minutes)
+   - Enter total session time (minutes)
+   - (Optional) Enable prayer reminders and enter your location
+   - (Optional) Toggle lofi background music
+   - Click "Start"
+
+4. **During break:**
+   - Emergency exit: Press **Ctrl + Shift + U** to exit fullscreen lock
 
 ---
 
 ## Roadmap
 
-- [X] **`Task 1`**: <strike>Implement feature one.</strike>
+- [x] **`Task 1`**: <strike>Implement feature one.</strike>
 - [ ] **`Task 2`**: Implement feature two.
 - [ ] **`Task 3`**: Implement feature three.
 
@@ -294,13 +257,9 @@ echo 'INSERT-TEST-COMMAND-HERE'
 
 ## License
 
- is protected under the [LICENSE](https://choosealicense.com/licenses) License. For more details, refer to the [LICENSE](https://choosealicense.com/licenses/) file.
+This project is protected under the [LICENSE](https://choosealicense.com/licenses) License. For more details, refer to the [LICENSE](https://choosealicense.com/licenses/) file.
 
 ---
-
-## Acknowledgments
-
-- Credit `contributors`, `inspiration`, `references`, etc.
 
 <div align="right">
 
@@ -308,8 +267,6 @@ echo 'INSERT-TEST-COMMAND-HERE'
 
 </div>
 
-
 [back-to-top]: https://img.shields.io/badge/-BACK_TO_TOP-151515?style=flat-square
-
 
 ---
