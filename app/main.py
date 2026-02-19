@@ -14,7 +14,15 @@ def main():
             if current_timer["timer"]:
                 current_timer["timer"].stop()
 
-            timer = PomodoroTimer(focus, rest, total, music_enabled=ui.music_enabled.get())
+            timer = PomodoroTimer(
+                focus,
+                rest,
+                total,
+                music_enabled=ui.music_enabled.get(),
+                prayer_enabled=ui.prayer_enabled.get(),
+                location=ui.location_entry.get()
+            )
+
             current_timer["timer"] = timer
             ui.attach_timer(timer)
 
