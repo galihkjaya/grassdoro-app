@@ -9,6 +9,7 @@ class MusicPlayer:
         pygame.mixer.init()
 
         self.folder = os.path.join(BASE_DIR, folder_name)
+        self.alarm_sound = None
 
         self.tracks = [
             os.path.join(self.folder, f)
@@ -25,8 +26,11 @@ class MusicPlayer:
         pygame.mixer.music.play(-1)
 
     def stop(self):
+        """Stop all audio - both music and sound effects"""
         pygame.mixer.music.stop()
+        pygame.mixer.stop()  # Stop all sound effects/alarms
+        self.alarm_sound = None
 
     def play_alarm(self, alarm_path):
-        alarm = pygame.mixer.Sound(os.path.join(BASE_DIR, alarm_path))
-        alarm.play()
+        self.alarm_sound = pygame.mixer.Sound(os.path.join(BASE_DIR, alarm_path))
+        self.alarm_sound.play()

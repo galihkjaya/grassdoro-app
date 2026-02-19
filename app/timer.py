@@ -1,5 +1,6 @@
 import time
 import datetime
+import threading
 from lockscreen import LockScreen
 from music_player import MusicPlayer
 from prayer_times import PrayerSchedule
@@ -37,8 +38,9 @@ class PomodoroTimer:
             self.prayer_map[prayer_time] = name
 
     def check_prayer_time(self):
+        """Check for prayer time and return True if prayer lock was shown"""
         if not self.prayer_schedule or not self.prayer_map:
-            return
+            return False
 
         now = datetime.datetime.now()
 
@@ -50,39 +52,83 @@ class PomodoroTimer:
                     # Stop music before prayer time lockscreen
                     if self.music_enabled:
                         self.music.stop()
-                    LockScreen(600, title=prayer_name, message="Allah calling you 🕌").show()
+                    # Show prayer lockscreen in separate thread
+                    prayer_lock_thread = threading.Thread(
+                        target=lambda: LockScreen(600, title=prayer_name, message="Allah calling you 🕌").show(),
+                        daemon=True
+                    )
+                    prayer_lock_thread.start()
+                    prayer_lock_thread.join()  # Wait for prayer lockscreen to finish
+                    # Resume music after prayer
+                    if self.music_enabled:
+                        self.music.play_random()
+                    return True
+        return False
 
     def run(self, callback):
         self.running = True
         self.elapsed = 0
 
         while self.elapsed < self.total_seconds and self.running:
-
-            if self.music_enabled:
+            # FOCUS PHASE
+            if self.music_enabled and self.running:
                 self.music.play_random()
 
             focus_time = min(self.focus_seconds, self.total_seconds - self.elapsed)
-            self.countdown(focus_time, "FOCUS", callback)
-            self.elapsed += focus_time
+            if focus_time > 0:
+                self.countdown(focus_time, "FOCUS", callback)
+                self.elapsed += focus_time
 
+            # Stop music after focus phase
             if self.music_enabled:
                 self.music.stop()
 
-            self.music.play_alarm(self.alarm_path)
+            # Play alarm only if timer is still running
+            if self.running:
+                self.music.play_alarm(self.alarm_path)
 
+            # Check if total time is completed
             if self.elapsed >= self.total_seconds or not self.running:
                 break
 
-            LockScreen(self.break_seconds).show()
-            self.elapsed += self.break_seconds
+            # BREAK PHASE - countdown with prayer checking, music continues
+            break_time = min(self.break_seconds, self.total_seconds - self.elapsed)
+            if break_time > 0:
+                # Run break countdown (music keeps playing)
+                self.break_countdown(break_time, callback)
+                self.elapsed += break_time
 
-        self.music.play_alarm(self.alarm_path)
+        # Session completed
+        if self.running:
+            self.music.play_alarm(self.alarm_path)
         LockScreen(5, message="Great job! 🎉 Stay consistent!").show()
 
     def countdown(self, seconds, label, callback):
+        """Focus countdown with prayer checking"""
         while seconds > 0 and self.running:
-            self.check_prayer_time()
+            prayer_triggered = self.check_prayer_time()
+            # If prayer happened, restart the loop without decrementing
+            # This way prayer time doesn't reduce the session duration
+            if prayer_triggered:
+                continue
+            
             callback(label, seconds)
+            time.sleep(1)
+            seconds -= 1
+
+    def break_countdown(self, seconds, callback):
+        """Break countdown with prayer checking (music continues, lockscreen shows)"""
+        # Show lockscreen in a separate thread so countdown continues
+        lockscreen_thread = threading.Thread(target=lambda: LockScreen(seconds).show(), daemon=True)
+        lockscreen_thread.start()
+        
+        while seconds > 0 and self.running:
+            prayer_triggered = self.check_prayer_time()
+            # If prayer happened, restart the loop without decrementing
+            if prayer_triggered:
+                continue
+            
+            callback("BREAK", seconds)
             time.sleep(1)
             seconds -= 1
 
