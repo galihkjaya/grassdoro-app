@@ -16,6 +16,6 @@ A customizable Pomodoro timer for Windows that enforces breaks with a lock scree
 
 1. Download the latest release (zip file)
 2. Extract it
-3. Open main.exe
+3. Open GrassDoro.exe
 4. Enjoy!
 
