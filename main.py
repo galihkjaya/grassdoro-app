@@ -1,21 +1,28 @@
 from timer import PomodoroTimer
-
-def display(label, seconds):
-    minutes = seconds // 60
-    seconds = seconds % 60
-    print(f"{label} | {minutes:02d}:{seconds:02d}", end="\r")
+from ui import TimerUI
 
 def main():
-    print("=== Focus Timer ===")
+    ui = TimerUI()
+    current_timer = {"timer": None}
 
-    focus = int(input("Focus time (minutes): "))
-    rest = int(input("Break time (minutes): "))
-    total = int(input("Total duration (minutes): "))
+    def apply_time():
+        try:
+            focus = int(ui.focus_entry.get())
+            rest = int(ui.break_entry.get())
+            total = int(ui.total_entry.get())
 
-    timer = PomodoroTimer(focus, rest, total)
-    timer.run(display)
+            if current_timer["timer"]:
+                current_timer["timer"].stop()
 
-    print("\nDone! Great job 🎉")
+            timer = PomodoroTimer(focus, rest, total)
+            current_timer["timer"] = timer
+            ui.attach_timer(timer)
+
+        except ValueError:
+            ui.status_label.config(text="Enter valid numbers!")
+
+    ui.apply_button.config(command=apply_time)
+    ui.start()
 
 if __name__ == "__main__":
     main()

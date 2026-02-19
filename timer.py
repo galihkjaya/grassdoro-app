@@ -6,41 +6,30 @@ class PomodoroTimer:
         self.break_seconds = break_min * 60
         self.total_seconds = total_min * 60
         self.elapsed = 0
-        self.session = 1
+        self.running = False
 
-    def format_time(self, seconds):
-        minutes = seconds // 60
-        seconds = seconds % 60
-        return f"{minutes:02d}:{seconds:02d}"
+    def run(self, callback):
+        self.running = True
+        self.elapsed = 0
 
-    def countdown(self, seconds, label, callback=None):
-        while seconds > 0:
-            if callback:
-                callback(label, seconds)
-            else:
-                print(f"{label} | {self.format_time(seconds)}", end="\r")
+        while self.elapsed < self.total_seconds and self.running:
 
-            time.sleep(1)
-            seconds -= 1
-
-        print()
-
-    def run(self, callback=None):
-        while self.elapsed < self.total_seconds:
-
-            remaining = self.total_seconds - self.elapsed
-            focus_time = min(self.focus_seconds, remaining)
-
+            focus_time = min(self.focus_seconds, self.total_seconds - self.elapsed)
             self.countdown(focus_time, "FOCUS", callback)
             self.elapsed += focus_time
 
-            if self.elapsed >= self.total_seconds:
+            if self.elapsed >= self.total_seconds or not self.running:
                 break
 
-            remaining = self.total_seconds - self.elapsed
-            break_time = min(self.break_seconds, remaining)
-
+            break_time = min(self.break_seconds, self.total_seconds - self.elapsed)
             self.countdown(break_time, "BREAK", callback)
             self.elapsed += break_time
 
-            self.session += 1
+    def countdown(self, seconds, label, callback):
+        while seconds > 0 and self.running:
+            callback(label, seconds)
+            time.sleep(1)
+            seconds -= 1
+
+    def stop(self):
+        self.running = False
