@@ -17,40 +17,40 @@ class PomodoroTimer:
 
         self.music_enabled = music_enabled
         self.prayer_schedule = prayer_schedule
-        self.prayer_times = prayer_schedule.get_prayer_times() if prayer_schedule else []
 
         self.music = MusicPlayer("assets/lofi")
         self.alarm_path = "assets/alarm.wav"
 
-        self.prayer_times = self.generate_prayer_times()
+        # Setup prayer times with names mapping
+        self.prayer_map = {}  # {datetime: prayer_name}
         self.triggered_prayers = set()
 
-    # Simple placeholder (can replace with real calculation later)
-    def generate_prayer_times(self):
-        if not self.prayer_schedule:
-            return []
+        if self.prayer_schedule:
+            self.setup_prayer_times()
 
-        now = datetime.datetime.now()
+    def setup_prayer_times(self):
+        """Setup prayer times with their names"""
+        prayer_names = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
+        prayer_times = self.prayer_schedule.get_prayer_times()
 
-        return [
-            now.replace(hour=5, minute=0, second=0),
-            now.replace(hour=12, minute=0, second=0),
-            now.replace(hour=15, minute=0, second=0),
-            now.replace(hour=18, minute=0, second=0),
-            now.replace(hour=19, minute=30, second=0)
-        ]
+        for name, prayer_time in zip(prayer_names, prayer_times):
+            self.prayer_map[prayer_time] = name
 
     def check_prayer_time(self):
-        if not self.prayer_schedule:
+        if not self.prayer_schedule or not self.prayer_map:
             return
 
         now = datetime.datetime.now()
 
-        for t in self.prayer_times:
-            if t not in self.triggered_prayers:
-                if abs((now - t).total_seconds()) < 1:
-                    self.triggered_prayers.add(t)
-                    LockScreen(600, message="It's prayer time 🕌").show()
+        for prayer_time, prayer_name in self.prayer_map.items():
+            if prayer_time not in self.triggered_prayers:
+                # Check if current time is within 1 second of prayer time
+                if abs((now - prayer_time).total_seconds()) < 1:
+                    self.triggered_prayers.add(prayer_time)
+                    # Stop music before prayer time lockscreen
+                    if self.music_enabled:
+                        self.music.stop()
+                    LockScreen(600, title=prayer_name, message="Allah calling you 🕌").show()
 
     def run(self, callback):
         self.running = True

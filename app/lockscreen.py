@@ -1,14 +1,26 @@
 import tkinter as tk
 
 class LockScreen:
-    def __init__(self, seconds, message="Touch some grass, bud 🌱"):
+    def __init__(self, seconds, title=None, message="Touch some grass, bud 🌱"):
         self.seconds = seconds
+        self.title = title
         self.message = message
 
         self.root = tk.Tk()
         self.root.attributes("-fullscreen", True)
         self.root.attributes("-topmost", True)
         self.root.configure(bg="black")
+
+        # Prayer time title (if applicable)
+        if self.title:
+            self.title_label = tk.Label(
+                self.root,
+                text=self.title,
+                fg="gold",
+                bg="black",
+                font=("Arial", 60, "bold")
+            )
+            self.title_label.pack(expand=False, pady=20)
 
         self.timer_label = tk.Label(
             self.root,
