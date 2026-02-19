@@ -1,4 +1,5 @@
 import time
+from lockscreen import LockScreen
 
 class PomodoroTimer:
     def __init__(self, focus_min, break_min, total_min):
@@ -21,9 +22,15 @@ class PomodoroTimer:
             if self.elapsed >= self.total_seconds or not self.running:
                 break
 
-            break_time = min(self.break_seconds, self.total_seconds - self.elapsed)
-            self.countdown(break_time, "BREAK", callback)
-            self.elapsed += break_time
+            # 🔒 break lock
+            LockScreen(self.break_seconds).show()
+            self.elapsed += self.break_seconds
+
+        # 🎉 FINAL LOCK — celebration
+        LockScreen(
+            5,
+            message="Great job! 🎉 Stay consistent!"
+        ).show()
 
     def countdown(self, seconds, label, callback):
         while seconds > 0 and self.running:
