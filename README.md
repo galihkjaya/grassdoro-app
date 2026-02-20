@@ -209,6 +209,28 @@ Install the required Python packages:
 
 ---
 
+## Patch Notes
+
+### **Patch 1.0.2** - Session Loop & Prayer Time Fixes
+
+**Released:** February 19, 2026
+
+**Fixes:**
+
+- ✅ Fixed issue where timer couldn't loop back to focus session after break completion
+- ✅ Prayer time lockscreen now displays properly without blocking the countdown
+- ✅ Prayer time no longer deducts from total session duration (works independently)
+- ✅ Improved audio handling for background music and alarm sounds
+
+**Changes:**
+
+- Added threading support for non-blocking lockscreen display
+- Refactored countdown loops for both focus and break phases
+- Enhanced music player controls to handle all audio channels correctly
+- Prayer time now runs as a background interrupt while session continues
+
+---
+
 ## Roadmap
 
 - [x] **`Task 1`**: <strike>Implement feature one.</strike>
