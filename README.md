@@ -157,8 +157,6 @@ Install the required Python packages:
 
 - `tkinter` (built-in with Python)
 - `pygame` (for music playback)
-- `praytimes` (for prayer time calculations)
-- `geopy` (for location geocoding)
 
 ### Installation
 
