@@ -177,7 +177,7 @@ Install the required Python packages:
 3. **Install the dependencies:**
 
    ```sh
-   pip install pygame praytimes geopy
+   pip install pygame
    ```
 
 ### Usage
