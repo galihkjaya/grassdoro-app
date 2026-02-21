@@ -1,4 +1,5 @@
 import os
+import time
 import random
 import pygame
 import threading
@@ -14,22 +15,32 @@ class MusicPlayer:
         self.is_playing = False
         self.playlist_thread = None
 
-        self.tracks = [
-            os.path.join(self.folder, f)
-            for f in os.listdir(self.folder)
-            if f.endswith(".mp3")
-        ]
+        # Load all tracks - with debugging
+        self.tracks = []
+        if os.path.exists(self.folder):
+            self.tracks = [
+                os.path.join(self.folder, f)
+                for f in os.listdir(self.folder)
+                if f.lower().endswith(".mp3")
+            ]
+        
+        print(f"DEBUG: Found {len(self.tracks)} tracks in {self.folder}")
 
     def _playlist_loop(self):
         """Background thread that continuously plays random tracks"""
         while self.is_playing and self.tracks:
             track = random.choice(self.tracks)
-            pygame.mixer.music.load(track)
-            pygame.mixer.music.play(0)  # Play once, not looped
+            print(f"DEBUG: Playing {os.path.basename(track)}")
             
-            # Get track duration and wait for it to finish
-            while pygame.mixer.music.get_busy() and self.is_playing:
-                threading.Event().wait(0.1)
+            try:
+                pygame.mixer.music.load(track)
+                pygame.mixer.music.play(0)  # Play once, not looped
+                
+                # Wait for track to finish
+                while pygame.mixer.music.get_busy() and self.is_playing:
+                    time.sleep(0.1)
+            except Exception as e:
+                print(f"DEBUG: Error playing track: {e}")
 
     def play_random(self):
         """Start playing random tracks in continuous loop"""
