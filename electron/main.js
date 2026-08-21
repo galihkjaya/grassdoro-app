@@ -1,11 +1,14 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { is } from '@electron-toolkit/utils'
 import { initializeIpc } from './ipc.js'
 
 let mainWindow = null
 let floatingWindow = null
 let lockscreenWindow = null
+
+function isDev() {
+  return process.env['ELECTRON_RENDERER_URL']
+}
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
@@ -21,7 +24,7 @@ function createMainWindow() {
     }
   })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  if (isDev()) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
@@ -49,7 +52,7 @@ function createFloatingWindow() {
     }
   })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  if (isDev()) {
     floatingWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     floatingWindow.loadFile(join(__dirname, '../renderer/index.html'))
@@ -71,7 +74,7 @@ function createLockscreenWindow() {
     }
   })
 
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  if (isDev()) {
     lockscreenWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     lockscreenWindow.loadFile(join(__dirname, '../renderer/index.html'))
