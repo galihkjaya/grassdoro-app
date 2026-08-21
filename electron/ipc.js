@@ -1,54 +1,96 @@
 import { ipcMain } from 'electron'
+import { PomodoroTimer } from './timer.js'
+
+let timer = null
+
+function sendToAll(getWindows, channel, payload) {
+  const { mainWindow, floatingWindow, lockscreenWindow } = getWindows()
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload)
+  if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.webContents.send(channel, payload)
+  if (lockscreenWindow && !lockscreenWindow.isDestroyed()) lockscreenWindow.webContents.send(channel, payload)
+}
 
 export function initializeIpc(getWindows) {
-  // Timer IPC handlers
   ipcMain.handle('timer:start', (event, config) => {
-    // TODO: create PomodoroTimer instance and start
-    const { mainWindow, floatingWindow, lockscreenWindow } = getWindows()
-    // TODO: onTick → send 'timer:tick' to mainWindow and floatingWindow
-    // TODO: onPhaseChange → send 'timer:phase-change' to all windows
-    // TODO: onComplete → send 'timer:complete' to all windows, log session
+    const { focusMin, breakMin, totalMin, longBreakMin, sessionsBeforeLongBreak } = config
+
+    if (timer) {
+      timer.stop()
+    }
+
+    timer = new PomodoroTimer({
+      focusMin,
+      breakMin,
+      totalMin,
+      longBreakMin,
+      sessionsBeforeLongBreak,
+      onTick: (timeLeft, phase, sessionCount) => {
+        const totalSeconds = focusMin * 60
+        sendToAll(getWindows, 'timer:tick', {
+          timeLeft,
+          phase,
+          sessionCount,
+          totalElapsed: timer.totalElapsed,
+          totalSeconds: timer.totalSeconds
+        })
+      },
+      onPhaseChange: (phase, sessionCount) => {
+        sendToAll(getWindows, 'timer:phase-change', { phase, sessionCount })
+      },
+      onComplete: (sessionCount) => {
+        sendToAll(getWindows, 'timer:complete', {
+          totalFocusSeconds: sessionCount * (focusMin * 60),
+          sessionCount
+        })
+      }
+    })
+
+    timer.start()
+    return { success: true }
   })
 
   ipcMain.handle('timer:pause', () => {
-    // TODO: timer.pause()
+    if (timer) timer.pause()
+    return { success: true }
   })
 
   ipcMain.handle('timer:resume', () => {
-    // TODO: timer.resume()
+    if (timer) timer.resume()
+    return { success: true }
   })
 
   ipcMain.handle('timer:stop', () => {
-    // TODO: timer.stop()
+    if (timer) timer.stop()
+    return { success: true }
   })
 
-  // Window IPC handlers
   ipcMain.on('window:minimize', () => {
     const { mainWindow, floatingWindow } = getWindows()
-    // TODO: hide mainWindow, show floatingWindow
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide()
+    if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.show()
   })
 
   ipcMain.on('window:show-main', () => {
     const { mainWindow, floatingWindow } = getWindows()
-    // TODO: show mainWindow, optionally hide floatingWindow
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
+    if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.hide()
   })
 
   ipcMain.on('window:show-floating', () => {
     const { floatingWindow } = getWindows()
-    // TODO: show floatingWindow
+    if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.show()
   })
 
   ipcMain.on('window:show-lockscreen', () => {
     const { lockscreenWindow } = getWindows()
-    // TODO: show lockscreenWindow
+    if (lockscreenWindow && !lockscreenWindow.isDestroyed()) lockscreenWindow.show()
   })
 
   ipcMain.on('window:hide-lockscreen', () => {
     const { lockscreenWindow } = getWindows()
-    // TODO: hide lockscreenWindow
+    if (lockscreenWindow && !lockscreenWindow.isDestroyed()) lockscreenWindow.hide()
   })
 
-  // Settings IPC handlers
   ipcMain.handle('settings:get', (event, key) => {
     // TODO: get from electron-store
     return null
@@ -58,18 +100,15 @@ export function initializeIpc(getWindows) {
     // TODO: set to electron-store
   })
 
-  // Prayer IPC handlers
   ipcMain.handle('prayer:get-times', () => {
     // TODO: get prayer times
     return null
   })
 
-  // Auto-launch IPC handlers
   ipcMain.handle('autolaunch:set', (event, enabled) => {
     // TODO: set auto-launch
   })
 
-  // Stats IPC handlers
   ipcMain.handle('stats:get', () => {
     // TODO: get stats from store
     return null
