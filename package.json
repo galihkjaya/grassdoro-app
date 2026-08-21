@@ -1,13 +1,16 @@
 {
   "name": "grassdoro-v2",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "main": "out/main/index.js",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "package:win": "electron-builder --win",
+    "package:mac": "electron-builder --mac",
+    "package:linux": "electron-builder --linux",
+    "lint": "oxlint"
   },
   "dependencies": {
     "electron-store": "^11.0.2",
@@ -30,5 +33,47 @@
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
     "vite": "^8.2.0"
+  },
+  "build": {
+    "appId": "com.grassdoro.app",
+    "productName": "Grassdoro",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "src/**/*",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "assets",
+        "to": "assets"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ]
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "deb",
+          "arch": ["x64"]
+        }
+      ]
+    }
   }
 }
