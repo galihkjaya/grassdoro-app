@@ -1,17 +1,24 @@
-import { app, BrowserWindow, Menu, Tray, nativeImage } from 'electron'
+import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
+import Store from 'electron-store'
 import { initializeIpc, getTimerControls } from './ipc.js'
 
 let mainWindow = null
 let floatingWindow = null
 let lockscreenWindow = null
 
+let store = null
 let tray = null
 let defaultTrayIcon = null
+let timerActive = false
 
 function isDev() {
   return process.env['ELECTRON_RENDERER_URL']
+}
+
+function isGnomeDesktop() {
+  return (process.env.XDG_CURRENT_DESKTOP || '').toUpperCase().includes('GNOME')
 }
 
 function resolveAssetPath(...segments) {
@@ -173,14 +180,17 @@ function createMainWindow() {
 }
 
 function createFloatingWindow() {
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize
+
   floatingWindow = new BrowserWindow({
-    width: 200,
-    height: 80,
+    width: 160,
+    height: 70,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
     resizable: false,
     skipTaskbar: true,
+    hasShadow: false,
     show: false,
     webPreferences: {
       contextIsolation: true,
@@ -190,9 +200,32 @@ function createFloatingWindow() {
   })
 
   if (isDev()) {
-    floatingWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    floatingWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#floating`)
   } else {
-    floatingWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    floatingWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'floating' })
+  }
+
+  const pos = store.get('floatingPosition', { x: screenWidth - 180, y: screenHeight - 100 })
+  floatingWindow.setPosition(pos.x, pos.y)
+
+  floatingWindow.on('moved', () => {
+    saveFloatingPosition()
+  })
+}
+
+function saveFloatingPosition() {
+  if (!floatingWindow || floatingWindow.isDestroyed() || !store) return
+  const [x, y] = floatingWindow.getPosition()
+  store.set('floatingPosition', { x, y })
+}
+
+function updateFloatingVisibility() {
+  if (!floatingWindow || floatingWindow.isDestroyed()) return
+  const mainHidden = !mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()
+  if (timerActive && mainHidden) {
+    floatingWindow.show()
+  } else {
+    floatingWindow.hide()
   }
 }
 
@@ -222,18 +255,49 @@ function getWindows() {
   return { mainWindow, floatingWindow, lockscreenWindow }
 }
 
+function setupFloatingIpc() {
+  ipcMain.on('floating:show', () => {
+    if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.show()
+  })
+
+  ipcMain.on('floating:hide', () => {
+    if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.hide()
+  })
+
+  ipcMain.on('floating:move-by', (event, { dx, dy }) => {
+    if (!floatingWindow || floatingWindow.isDestroyed()) return
+    const [x, y] = floatingWindow.getPosition()
+    floatingWindow.setPosition(x + dx, y + dy)
+  })
+
+  ipcMain.on('floating:save-position', () => {
+    saveFloatingPosition()
+  })
+}
+
 app.whenReady().then(() => {
+  store = new Store()
   createMainWindow()
   createFloatingWindow()
   createLockscreenWindow()
-  createTray()
+
+  mainWindow.on('show', updateFloatingVisibility)
+  mainWindow.on('hide', updateFloatingVisibility)
+  setupFloatingIpc()
+
+  if (!isGnomeDesktop()) {
+    createTray()
+  }
+
   initializeIpc(getWindows, {
     onTimerTick: (timeLeft, phase) => {
-      updateTrayTitle(timeLeft, phase)
+      if (tray) updateTrayTitle(timeLeft, phase)
     },
     onTimerState: (status) => {
-      updateTrayMenu(status)
-      if (status === 'idle') setTrayIdle()
+      timerActive = status === 'running' || status === 'paused'
+      if (tray) updateTrayMenu(status)
+      if (tray && status === 'idle') setTrayIdle()
+      updateFloatingVisibility()
     }
   })
 })
