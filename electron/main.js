@@ -1,7 +1,7 @@
-import { app, BrowserWindow, Tray, nativeImage } from 'electron'
+import { app, BrowserWindow, Menu, Tray, nativeImage } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
-import { initializeIpc } from './ipc.js'
+import { initializeIpc, getTimerControls } from './ipc.js'
 
 let mainWindow = null
 let floatingWindow = null
@@ -60,6 +60,8 @@ function createTray() {
   defaultTrayIcon = iconPath ? nativeImage.createFromPath(iconPath) : nativeImage.createEmpty()
   tray = new Tray(defaultTrayIcon)
   tray.setToolTip('Grassdoro — Ready')
+  setupTrayEvents()
+  updateTrayMenu('idle')
   return tray
 }
 
@@ -83,6 +85,66 @@ export function setTrayIdle() {
     tray.setToolTip('Grassdoro — Ready')
     tray.setTitle('')
   } catch {}
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function buildTrayMenu(status) {
+  const controls = getTimerControls()
+  const template = [
+    { label: 'Grassdoro', enabled: false },
+    { type: 'separator' }
+  ]
+
+  if (status === 'running') {
+    template.push(
+      { label: '⏸ Pause', click: () => controls.pause() },
+      { label: '⏹ Stop', click: () => controls.stop() }
+    )
+  } else if (status === 'paused') {
+    template.push(
+      { label: '▶ Resume', click: () => controls.resume() },
+      { label: '⏹ Stop', click: () => controls.stop() }
+    )
+  }
+
+  template.push(
+    { type: 'separator' },
+    { label: '🪟 Open', click: () => showMainWindow() },
+    { type: 'separator' },
+    { label: 'Quit', click: () => app.quit() }
+  )
+
+  return Menu.buildFromTemplate(template)
+}
+
+function updateTrayMenu(status) {
+  if (!tray || tray.isDestroyed()) return
+  try {
+    tray.setContextMenu(buildTrayMenu(status))
+  } catch {}
+}
+
+function setupTrayEvents() {
+  if (!tray) return
+  const controls = getTimerControls()
+
+  tray.on('click', () => {
+    const status = controls.getStatus()
+    if (status === 'running') {
+      controls.pause()
+    } else if (status === 'paused') {
+      controls.resume()
+    }
+  })
+
+  tray.on('double-click', () => {
+    showMainWindow()
+  })
 }
 
 function createMainWindow() {
@@ -170,6 +232,7 @@ app.whenReady().then(() => {
       updateTrayTitle(timeLeft, phase)
     },
     onTimerState: (status) => {
+      updateTrayMenu(status)
       if (status === 'idle') setTrayIdle()
     }
   })
