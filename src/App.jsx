@@ -30,6 +30,19 @@ function App() {
     })
   }, [])
 
+  useEffect(() => {
+    audioPlayer.init()
+
+    let prevStatus = useTimerStore.getState().status
+    const unsubscribe = useTimerStore.subscribe((state) => {
+      if (prevStatus !== 'idle' && state.status === 'idle') {
+        audioPlayer.stopLofi()
+      }
+      prevStatus = state.status
+    })
+    return unsubscribe
+  }, [])
+
   return <MainWindow />
 }
 

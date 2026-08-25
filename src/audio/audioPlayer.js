@@ -1,24 +1,42 @@
-import { Howl } from 'howler'
+import { Howl, Howler } from 'howler'
 import useTimerStore from '../store/timerStore'
+import alarmUrl from '../../assets/alarm.wav'
 
 class AudioPlayer {
   constructor() {
     this.lofiSound = null
     this.alarmSound = null
     this.volume = 0.5
+    this.lofiFiles = []
+    this.initialized = false
+  }
+
+  async init() {
+    try {
+      const files = await window.electronAPI.invoke('audio:get-lofi-files')
+      this.lofiFiles = Array.isArray(files) ? files : []
+      this.initialized = true
+    } catch {
+      this.lofiFiles = []
+    }
+    return this.lofiFiles
+  }
+
+  hasTracks() {
+    return this.lofiFiles.length > 0
   }
 
   playLofi() {
-    const files = this._getLofiFiles()
-    if (files.length === 0) return
+    if (!this.hasTracks()) return
 
+    const file = this.lofiFiles[Math.floor(Math.random() * this.lofiFiles.length)]
     this.stopLofi()
 
-    const randomFile = files[Math.floor(Math.random() * files.length)]
     this.lofiSound = new Howl({
-      src: [`assets/lofi/${randomFile}`],
+      src: [`file://${encodeURI(file)}`],
       loop: true,
       volume: this.volume,
+      onend: () => this.playLofi()
     })
     this.lofiSound.play()
   }
@@ -31,31 +49,29 @@ class AudioPlayer {
     }
   }
 
+  pauseLofi() {
+    this.lofiSound?.pause()
+  }
+
+  resumeLofi() {
+    this.lofiSound?.play()
+  }
+
   playAlarm() {
+    this.alarmSound?.stop()
     this.alarmSound = new Howl({
-      src: ['assets/alarm.wav'],
-      loop: false,
+      src: [alarmUrl],
       volume: this.volume,
+      loop: false
     })
     this.alarmSound.play()
   }
 
   setVolume(v) {
     this.volume = Math.max(0, Math.min(1, v))
+    Howler.volume(this.volume)
     if (this.lofiSound) this.lofiSound.volume(this.volume)
     if (this.alarmSound) this.alarmSound.volume(this.volume)
-  }
-
-  _getLofiFiles() {
-    try {
-      const fs = require('fs')
-      const path = require('path')
-      const lofiDir = path.join(__dirname, '../../assets/lofi')
-      if (!fs.existsSync(lofiDir)) return []
-      return fs.readdirSync(lofiDir).filter(f => f.endsWith('.mp3') || f.endsWith('.wav') || f.endsWith('.ogg'))
-    } catch {
-      return []
-    }
   }
 }
 

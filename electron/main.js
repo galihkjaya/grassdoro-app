@@ -1,5 +1,6 @@
-import { app, BrowserWindow } from 'electron'
-import { join } from 'path'
+import { app, BrowserWindow, ipcMain } from 'electron'
+import { extname, join } from 'path'
+import { existsSync, readdirSync } from 'fs'
 import Store from 'electron-store'
 import { initializeIpc, getTimerControls } from './ipc.js'
 import { initPrayer, getPrayerTimes, schedulePrayerAlerts, triggerPrayerInterrupt } from './prayer.js'
@@ -110,6 +111,24 @@ function hidePrayerLockscreen() {
   }
 }
 
+function setupAudioIpc() {
+  ipcMain.handle('audio:get-lofi-files', () => {
+    const candidates = [
+      join(__dirname, '../../assets/lofi'),
+      process.resourcesPath ? join(process.resourcesPath, 'assets', 'lofi') : null
+    ]
+    const lofiDir = candidates.find((p) => p && existsSync(p))
+    if (!lofiDir) return []
+    try {
+      return readdirSync(lofiDir)
+        .filter((f) => ['.mp3', '.ogg', '.wav'].includes(extname(f).toLowerCase()))
+        .map((f) => join(lofiDir, f))
+    } catch {
+      return []
+    }
+  })
+}
+
 function enablePrayerSchedule() {
   const city = store.get('settings.city', 'Jakarta')
   const durationMin = store.get('settings.prayerDurationMin', 10)
@@ -132,6 +151,7 @@ app.whenReady().then(() => {
   createMainWindow()
   createFloatingWindow()
   createLockscreenWindow()
+  setupAudioIpc()
   initializeIpc(getWindows, {
     onPrayerTime: triggerPrayerAlert
   })
