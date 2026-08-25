@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen } from 'electron'
+import { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, nativeImage, screen } from 'electron'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import Store from 'electron-store'
@@ -12,6 +12,8 @@ let store = null
 let tray = null
 let defaultTrayIcon = null
 let timerActive = false
+let secondaryLockscreens = []
+let lockscreenIsActive = false
 
 function isDev() {
   return process.env['ELECTRON_RENDERER_URL']
@@ -92,12 +94,6 @@ export function setTrayIdle() {
     tray.setToolTip('Grassdoro — Ready')
     tray.setTitle('')
   } catch {}
-}
-
-function showMainWindow() {
-  if (!mainWindow || mainWindow.isDestroyed()) return
-  mainWindow.show()
-  mainWindow.focus()
 }
 
 function buildTrayMenu(status) {
@@ -231,12 +227,13 @@ function updateFloatingVisibility() {
 
 function createLockscreenWindow() {
   lockscreenWindow = new BrowserWindow({
-    width: 1920,
-    height: 1080,
-    frame: false,
-    alwaysOnTop: true,
     fullscreen: true,
+    alwaysOnTop: true,
+    frame: false,
+    skipTaskbar: true,
+    focusable: true,
     show: false,
+    backgroundColor: '#000000',
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -244,11 +241,115 @@ function createLockscreenWindow() {
     }
   })
 
+  lockscreenWindow.setAlwaysOnTop(true, 'screen-saver')
+  lockscreenWindow.setFullScreenable(true)
+  lockscreenWindow.setVisibleOnAllWorkspaces(true)
+
   if (isDev()) {
-    lockscreenWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    lockscreenWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#lockscreen`)
   } else {
-    lockscreenWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    lockscreenWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'lockscreen' })
   }
+
+  lockscreenWindow.on('blur', () => {
+    if (lockscreenIsActive && !lockscreenWindow.isDestroyed()) {
+      lockscreenWindow.focus()
+    }
+  })
+
+  lockscreenWindow.on('close', (e) => {
+    if (lockscreenIsActive) {
+      e.preventDefault()
+    }
+  })
+}
+
+function createSecondaryLockscreens() {
+  closeSecondaryLockscreens()
+  const primaryId = screen.getPrimaryDisplay().id
+  const displays = screen.getAllDisplays().filter((d) => d.id !== primaryId)
+
+  secondaryLockscreens = displays.map((display) => {
+    const overlay = new BrowserWindow({
+      x: display.workArea.x,
+      y: display.workArea.y,
+      width: display.size.width,
+      height: display.size.height,
+      fullscreen: true,
+      frame: false,
+      alwaysOnTop: true,
+      skipTaskbar: true,
+      resizable: false,
+      movable: false,
+      show: false,
+      backgroundColor: '#000000',
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false
+      }
+    })
+    overlay.setAlwaysOnTop(true, 'screen-saver')
+    overlay.setVisibleOnAllWorkspaces(true)
+    return overlay
+  })
+}
+
+function closeSecondaryLockscreens() {
+  secondaryLockscreens.forEach((win) => {
+    if (!win.isDestroyed()) win.destroy()
+  })
+  secondaryLockscreens = []
+}
+
+function showLockscreen(type, data = {}) {
+  lockscreenIsActive = true
+  createSecondaryLockscreens()
+
+  if (lockscreenWindow && !lockscreenWindow.isDestroyed()) {
+    lockscreenWindow.webContents.send('lockscreen:type', { type, ...data })
+    lockscreenWindow.show()
+    lockscreenWindow.focus()
+    lockscreenWindow.moveTop()
+    lockscreenWindow.setFullScreen(true)
+  }
+
+  secondaryLockscreens.forEach((win) => {
+    win.show()
+    win.moveTop()
+  })
+}
+
+function hideLockscreen() {
+  lockscreenIsActive = false
+  if (lockscreenWindow && !lockscreenWindow.isDestroyed()) {
+    lockscreenWindow.hide()
+  }
+  secondaryLockscreens.forEach((win) => {
+    if (!win.isDestroyed()) win.hide()
+  })
+  closeSecondaryLockscreens()
+}
+
+function setupLockscreenIpc() {
+  ipcMain.on('lockscreen:show', (event, payload) => {
+    if (typeof payload === 'string') {
+      showLockscreen(payload)
+    } else if (payload && typeof payload === 'object') {
+      const { type, ...rest } = payload
+      showLockscreen(type || 'break', rest)
+    } else {
+      showLockscreen('break')
+    }
+  })
+
+  ipcMain.on('lockscreen:hide', () => {
+    hideLockscreen()
+  })
+
+  ipcMain.on('prayer:done', () => {
+    hideLockscreen()
+    getTimerControls().resume()
+  })
 }
 
 function getWindows() {
@@ -275,6 +376,21 @@ function setupFloatingIpc() {
   })
 }
 
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.show()
+  mainWindow.focus()
+  updateFloatingVisibility()
+}
+
+function setupEmergencyExit() {
+  globalShortcut.register('CommandOrControl+Shift+U', () => {
+    hideLockscreen()
+    getTimerControls().stop()
+    showMainWindow()
+  })
+}
+
 app.whenReady().then(() => {
   store = new Store()
   createMainWindow()
@@ -284,6 +400,8 @@ app.whenReady().then(() => {
   mainWindow.on('show', updateFloatingVisibility)
   mainWindow.on('hide', updateFloatingVisibility)
   setupFloatingIpc()
+  setupLockscreenIpc()
+  setupEmergencyExit()
 
   if (!isGnomeDesktop()) {
     createTray()
@@ -300,6 +418,10 @@ app.whenReady().then(() => {
       updateFloatingVisibility()
     }
   })
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 app.on('window-all-closed', () => {

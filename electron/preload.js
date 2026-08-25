@@ -8,7 +8,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'timer:tick',
       'timer:phase-change',
       'timer:complete',
-      'timer:state'
+      'timer:state',
+      'lockscreen:type'
     ]
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => callback(...args))
