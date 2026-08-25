@@ -10,6 +10,32 @@ export function initPrayer(injectedDeps = {}) {
   deps = injectedDeps
 }
 
+export function triggerPrayerInterrupt(prayerName, durationMin) {
+  try {
+    deps.getTimerControls?.().pause()
+  } catch {}
+
+  const mainWindow = deps.getMainWindow?.()
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('audio:stop-lofi')
+  }
+
+  deps.showLockscreen?.('prayer', { prayerName, durationMin })
+}
+
+export function resumeAfterPrayer() {
+  deps.hideLockscreen?.()
+
+  try {
+    deps.getTimerControls?.().resume()
+  } catch {}
+
+  const mainWindow = deps.getMainWindow?.()
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('audio:resume-lofi')
+  }
+}
+
 function todayKey() {
   const now = new Date()
   const y = now.getFullYear()

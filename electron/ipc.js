@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { PomodoroTimer } from './timer.js'
-import { fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts } from './prayer.js'
+import { fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts, resumeAfterPrayer } from './prayer.js'
 
 let timer = null
 
@@ -140,6 +140,10 @@ export function initializeIpc(getWindows, hooks = {}) {
       hooks.onPrayerTime?.({ prayerName, durationMin: dur })
     })
     return { success: true }
+  })
+
+  ipcMain.on('prayer:done', () => {
+    resumeAfterPrayer()
   })
 
   ipcMain.handle('autolaunch:set', (event, enabled) => {

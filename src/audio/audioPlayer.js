@@ -1,4 +1,5 @@
 import { Howl } from 'howler'
+import useTimerStore from '../store/timerStore'
 
 class AudioPlayer {
   constructor() {
@@ -58,4 +59,17 @@ class AudioPlayer {
   }
 }
 
-export default new AudioPlayer()
+const audioPlayer = new AudioPlayer()
+
+if (typeof window !== 'undefined' && window.electronAPI) {
+  window.electronAPI.on('audio:stop-lofi', () => {
+    audioPlayer.stopLofi()
+  })
+  window.electronAPI.on('audio:resume-lofi', () => {
+    if (useTimerStore.getState().musicEnabled) {
+      audioPlayer.playLofi()
+    }
+  })
+}
+
+export default audioPlayer

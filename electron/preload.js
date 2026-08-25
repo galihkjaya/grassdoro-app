@@ -7,7 +7,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const validChannels = [
       'timer:tick',
       'timer:phase-change',
-      'timer:complete'
+      'timer:complete',
+      'audio:stop-lofi',
+      'audio:resume-lofi'
     ]
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => callback(...args))
