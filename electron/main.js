@@ -1,10 +1,14 @@
 import { app, BrowserWindow } from 'electron'
 import { join } from 'path'
-import { initializeIpc } from './ipc.js'
+import Store from 'electron-store'
+import { initializeIpc, getTimerControls } from './ipc.js'
+import { initPrayer, getPrayerTimes, schedulePrayerAlerts } from './prayer.js'
 
 let mainWindow = null
 let floatingWindow = null
 let lockscreenWindow = null
+
+let store = null
 
 function isDev() {
   return process.env['ELECTRON_RENDERER_URL']
@@ -85,11 +89,43 @@ function getWindows() {
   return { mainWindow, floatingWindow, lockscreenWindow }
 }
 
+function triggerPrayerAlert({ prayerName, durationMin }) {
+  getTimerControls().pause()
+  const { lockscreenWindow: lock } = getWindows()
+  if (lock && !lock.isDestroyed()) {
+    lock.webContents.send('lockscreen:type', { type: 'prayer', prayerName, durationMin })
+    lock.show()
+    lock.focus()
+    lock.moveTop()
+  }
+}
+
+function enablePrayerSchedule() {
+  const city = store.get('settings.city', 'Jakarta')
+  const durationMin = store.get('settings.prayerDurationMin', 10)
+  getPrayerTimes(city).then((timings) => {
+    if (!timings) return
+    schedulePrayerAlerts(timings, { durationMin }, triggerPrayerAlert)
+  }).catch(() => {})
+}
+
 app.whenReady().then(() => {
+  store = new Store()
+  initPrayer({
+    store,
+    getCity: () => store.get('settings.city', 'Jakarta'),
+    getMainWindow: () => mainWindow
+  })
   createMainWindow()
   createFloatingWindow()
   createLockscreenWindow()
-  initializeIpc(getWindows)
+  initializeIpc(getWindows, {
+    onPrayerTime: triggerPrayerAlert
+  })
+
+  if (store.get('settings.prayerEnabled', false)) {
+    enablePrayerSchedule()
+  }
 })
 
 app.on('window-all-closed', () => {
