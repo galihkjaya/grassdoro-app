@@ -1,7 +1,13 @@
 import { useEffect } from 'react'
 import MainWindow from './views/MainWindow'
+import FloatingWidget from './views/FloatingWidget'
+import Lockscreen from './views/Lockscreen'
 import useTimerStore from './store/timerStore'
 import audioPlayer from './audio/audioPlayer'
+
+function getWindowRoute() {
+  return window.location.hash.replace('#', '')
+}
 
 function App() {
   useEffect(() => {
@@ -30,6 +36,9 @@ function App() {
     })
   }, [])
 
+  const route = getWindowRoute()
+  if (route === 'floating') return <FloatingWidget />
+  if (route === 'lockscreen') return <Lockscreen />
   return <MainWindow />
 }
 

@@ -1,13 +1,157 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, Menu, Tray, ipcMain, nativeImage, screen } from 'electron'
 import { join } from 'path'
-import { initializeIpc } from './ipc.js'
+import { existsSync } from 'fs'
+import Store from 'electron-store'
+import { initializeIpc, getTimerControls } from './ipc.js'
 
 let mainWindow = null
 let floatingWindow = null
 let lockscreenWindow = null
 
+let store = null
+let tray = null
+let defaultTrayIcon = null
+let timerActive = false
+
 function isDev() {
   return process.env['ELECTRON_RENDERER_URL']
+}
+
+function isGnomeDesktop() {
+  return (process.env.XDG_CURRENT_DESKTOP || '').toUpperCase().includes('GNOME')
+}
+
+function resolveAssetPath(...segments) {
+  const localPath = join(__dirname, '../../', ...segments)
+  if (existsSync(localPath)) return localPath
+  if (process.resourcesPath) {
+    const packagedPath = join(process.resourcesPath, ...segments)
+    if (existsSync(packagedPath)) return packagedPath
+  }
+  return null
+}
+
+function formatTime(totalSeconds) {
+  const mins = Math.floor(totalSeconds / 60)
+  const secs = totalSeconds % 60
+  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+}
+
+async function renderTimerImage(text) {
+  try {
+    const { createCanvas } = await import('canvas')
+    const fontSize = 32
+    const probe = createCanvas(1, 1)
+    const probeCtx = probe.getContext('2d')
+    probeCtx.font = `bold ${fontSize}px monospace`
+    const width = Math.max(16, Math.ceil(probeCtx.measureText(text).width) + 12)
+    const height = 40
+
+    const canvas = createCanvas(width, height)
+    const ctx = canvas.getContext('2d')
+    ctx.fillStyle = '#111111'
+    ctx.fillRect(0, 0, width, height)
+    ctx.fillStyle = '#4ade80'
+    ctx.font = `bold ${fontSize}px monospace`
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, 6, height / 2 + 1)
+
+    return nativeImage.createFromBuffer(canvas.toBuffer('image/png'))
+  } catch {
+    return null
+  }
+}
+
+function createTray() {
+  const iconPath = resolveAssetPath('assets', 'icons', 'tray-icon.png')
+  defaultTrayIcon = iconPath ? nativeImage.createFromPath(iconPath) : nativeImage.createEmpty()
+  tray = new Tray(defaultTrayIcon)
+  tray.setToolTip('Grassdoro — Ready')
+  setupTrayEvents()
+  updateTrayMenu('idle')
+  return tray
+}
+
+export async function updateTrayTitle(timeLeft, phase) {
+  if (!tray || tray.isDestroyed()) return
+  const timeString = formatTime(timeLeft)
+  try {
+    const image = await renderTimerImage(timeString)
+    tray.setImage(image || defaultTrayIcon)
+    tray.setToolTip(`${phase.toUpperCase()} — ${timeString}`)
+    tray.setTitle(timeString)
+  } catch {
+    tray.setImage(defaultTrayIcon)
+  }
+}
+
+export function setTrayIdle() {
+  if (!tray || tray.isDestroyed()) return
+  try {
+    tray.setImage(defaultTrayIcon)
+    tray.setToolTip('Grassdoro — Ready')
+    tray.setTitle('')
+  } catch {}
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function buildTrayMenu(status) {
+  const controls = getTimerControls()
+  const template = [
+    { label: 'Grassdoro', enabled: false },
+    { type: 'separator' }
+  ]
+
+  if (status === 'running') {
+    template.push(
+      { label: '⏸ Pause', click: () => controls.pause() },
+      { label: '⏹ Stop', click: () => controls.stop() }
+    )
+  } else if (status === 'paused') {
+    template.push(
+      { label: '▶ Resume', click: () => controls.resume() },
+      { label: '⏹ Stop', click: () => controls.stop() }
+    )
+  }
+
+  template.push(
+    { type: 'separator' },
+    { label: '🪟 Open', click: () => showMainWindow() },
+    { type: 'separator' },
+    { label: 'Quit', click: () => app.quit() }
+  )
+
+  return Menu.buildFromTemplate(template)
+}
+
+function updateTrayMenu(status) {
+  if (!tray || tray.isDestroyed()) return
+  try {
+    tray.setContextMenu(buildTrayMenu(status))
+  } catch {}
+}
+
+function setupTrayEvents() {
+  if (!tray) return
+  const controls = getTimerControls()
+
+  tray.on('click', () => {
+    const status = controls.getStatus()
+    if (status === 'running') {
+      controls.pause()
+    } else if (status === 'paused') {
+      controls.resume()
+    }
+  })
+
+  tray.on('double-click', () => {
+    showMainWindow()
+  })
 }
 
 function createMainWindow() {
@@ -36,14 +180,17 @@ function createMainWindow() {
 }
 
 function createFloatingWindow() {
+  const { width: screenWidth, height: screenHeight } = screen.getPrimaryDisplay().workAreaSize
+
   floatingWindow = new BrowserWindow({
-    width: 200,
-    height: 80,
+    width: 160,
+    height: 70,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
     resizable: false,
     skipTaskbar: true,
+    hasShadow: false,
     show: false,
     webPreferences: {
       contextIsolation: true,
@@ -53,9 +200,32 @@ function createFloatingWindow() {
   })
 
   if (isDev()) {
-    floatingWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
+    floatingWindow.loadURL(`${process.env['ELECTRON_RENDERER_URL']}#floating`)
   } else {
-    floatingWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    floatingWindow.loadFile(join(__dirname, '../renderer/index.html'), { hash: 'floating' })
+  }
+
+  const pos = store.get('floatingPosition', { x: screenWidth - 180, y: screenHeight - 100 })
+  floatingWindow.setPosition(pos.x, pos.y)
+
+  floatingWindow.on('moved', () => {
+    saveFloatingPosition()
+  })
+}
+
+function saveFloatingPosition() {
+  if (!floatingWindow || floatingWindow.isDestroyed() || !store) return
+  const [x, y] = floatingWindow.getPosition()
+  store.set('floatingPosition', { x, y })
+}
+
+function updateFloatingVisibility() {
+  if (!floatingWindow || floatingWindow.isDestroyed()) return
+  const mainHidden = !mainWindow || mainWindow.isDestroyed() || !mainWindow.isVisible()
+  if (timerActive && mainHidden) {
+    floatingWindow.show()
+  } else {
+    floatingWindow.hide()
   }
 }
 
@@ -85,11 +255,51 @@ function getWindows() {
   return { mainWindow, floatingWindow, lockscreenWindow }
 }
 
+function setupFloatingIpc() {
+  ipcMain.on('floating:show', () => {
+    if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.show()
+  })
+
+  ipcMain.on('floating:hide', () => {
+    if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.hide()
+  })
+
+  ipcMain.on('floating:move-by', (event, { dx, dy }) => {
+    if (!floatingWindow || floatingWindow.isDestroyed()) return
+    const [x, y] = floatingWindow.getPosition()
+    floatingWindow.setPosition(x + dx, y + dy)
+  })
+
+  ipcMain.on('floating:save-position', () => {
+    saveFloatingPosition()
+  })
+}
+
 app.whenReady().then(() => {
+  store = new Store()
   createMainWindow()
   createFloatingWindow()
   createLockscreenWindow()
-  initializeIpc(getWindows)
+
+  mainWindow.on('show', updateFloatingVisibility)
+  mainWindow.on('hide', updateFloatingVisibility)
+  setupFloatingIpc()
+
+  if (!isGnomeDesktop()) {
+    createTray()
+  }
+
+  initializeIpc(getWindows, {
+    onTimerTick: (timeLeft, phase) => {
+      if (tray) updateTrayTitle(timeLeft, phase)
+    },
+    onTimerState: (status) => {
+      timerActive = status === 'running' || status === 'paused'
+      if (tray) updateTrayMenu(status)
+      if (tray && status === 'idle') setTrayIdle()
+      updateFloatingVisibility()
+    }
+  })
 })
 
 app.on('window-all-closed', () => {

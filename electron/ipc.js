@@ -2,6 +2,18 @@ import { ipcMain } from 'electron'
 import { PomodoroTimer } from './timer.js'
 
 let timer = null
+let timerStatus = 'idle'
+
+const timerControls = {
+  pause: () => {},
+  resume: () => {},
+  stop: () => {},
+  getStatus: () => timerStatus
+}
+
+export function getTimerControls() {
+  return timerControls
+}
 
 function sendToAll(getWindows, channel, payload) {
   const { mainWindow, floatingWindow, lockscreenWindow } = getWindows()
@@ -10,7 +22,13 @@ function sendToAll(getWindows, channel, payload) {
   if (lockscreenWindow && !lockscreenWindow.isDestroyed()) lockscreenWindow.webContents.send(channel, payload)
 }
 
-export function initializeIpc(getWindows) {
+export function initializeIpc(getWindows, hooks = {}) {
+  const notifyState = (status) => {
+    timerStatus = status
+    sendToAll(getWindows, 'timer:state', { status })
+    hooks.onTimerState?.(status)
+  }
+
   ipcMain.handle('timer:start', (event, config) => {
     const { focusMin, breakMin, totalMin, longBreakMin, sessionsBeforeLongBreak } = config
 
@@ -33,36 +51,69 @@ export function initializeIpc(getWindows) {
           totalElapsed: timer.totalElapsed,
           totalSeconds: timer.totalSeconds
         })
+        hooks.onTimerTick?.(timeLeft, phase)
       },
       onPhaseChange: (phase, sessionCount) => {
         sendToAll(getWindows, 'timer:phase-change', { phase, sessionCount })
+        hooks.onPhaseChange?.(phase)
       },
       onComplete: (sessionCount) => {
         sendToAll(getWindows, 'timer:complete', {
           totalFocusSeconds: sessionCount * (focusMin * 60),
           sessionCount
         })
+        notifyState('idle')
       }
     })
 
     timer.start()
+    notifyState('running')
     return { success: true }
   })
 
   ipcMain.handle('timer:pause', () => {
-    if (timer) timer.pause()
+    if (timer) {
+      timer.pause()
+      notifyState('paused')
+    }
     return { success: true }
   })
 
   ipcMain.handle('timer:resume', () => {
-    if (timer) timer.resume()
+    if (timer) {
+      timer.resume()
+      notifyState('running')
+    }
     return { success: true }
   })
 
   ipcMain.handle('timer:stop', () => {
-    if (timer) timer.stop()
+    if (timer) {
+      timer.stop()
+      notifyState('idle')
+    }
     return { success: true }
   })
+
+  timerControls.pause = () => {
+    if (timer) {
+      timer.pause()
+      notifyState('paused')
+    }
+  }
+  timerControls.resume = () => {
+    if (timer) {
+      timer.resume()
+      notifyState('running')
+    }
+  }
+  timerControls.stop = () => {
+    if (timer) {
+      timer.stop()
+      notifyState('idle')
+    }
+  }
+  timerControls.getStatus = () => timerStatus
 
   ipcMain.on('window:minimize', () => {
     const { mainWindow, floatingWindow } = getWindows()
