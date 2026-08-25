@@ -123,10 +123,10 @@ pnpm package:linux
 - [x] Core Pomodoro timer
 - [x] Electron boilerplate + IPC skeleton
 - [x] Main window UI
-- [ ] System tray with live timer
-- [ ] Lockscreen overlay
-- [ ] Prayer time integration
-- [ ] Lofi music player
+- [x] System tray with live timer
+- [x] Lockscreen overlay
+- [x] Prayer time integration
+- [x] Lofi music player
 - [ ] Scheduled sessions
 - [ ] Auto-launch
 - [ ] Stats & history
