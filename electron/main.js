@@ -1,8 +1,9 @@
 import { app, BrowserWindow, Menu, Tray, globalShortcut, ipcMain, nativeImage, screen } from 'electron'
-import { join } from 'path'
-import { existsSync } from 'fs'
+import { extname, join } from 'path'
+import { existsSync, readdirSync } from 'fs'
 import Store from 'electron-store'
 import { initializeIpc, getTimerControls } from './ipc.js'
+import { initPrayer, getPrayerTimes, schedulePrayerAlerts, triggerPrayerInterrupt } from './prayer.js'
 
 let mainWindow = null
 let floatingWindow = null
@@ -391,8 +392,47 @@ function setupEmergencyExit() {
   })
 }
 
+function triggerPrayerAlert({ prayerName, durationMin }) {
+  triggerPrayerInterrupt(prayerName, durationMin)
+}
+
+function setupAudioIpc() {
+  ipcMain.handle('audio:get-lofi-files', () => {
+    const candidates = [
+      join(__dirname, '../../assets/lofi'),
+      process.resourcesPath ? join(process.resourcesPath, 'assets', 'lofi') : null
+    ]
+    const lofiDir = candidates.find((p) => p && existsSync(p))
+    if (!lofiDir) return []
+    try {
+      return readdirSync(lofiDir)
+        .filter((f) => ['.mp3', '.ogg', '.wav'].includes(extname(f).toLowerCase()))
+        .map((f) => join(lofiDir, f))
+    } catch {
+      return []
+    }
+  })
+}
+
+function enablePrayerSchedule() {
+  const city = store.get('settings.city', 'Jakarta')
+  const durationMin = store.get('settings.prayerDurationMin', 10)
+  getPrayerTimes(city).then((timings) => {
+    if (!timings) return
+    schedulePrayerAlerts(timings, { durationMin }, triggerPrayerAlert)
+  }).catch(() => {})
+}
+
 app.whenReady().then(() => {
   store = new Store()
+  initPrayer({
+    store,
+    getCity: () => store.get('settings.city', 'Jakarta'),
+    getMainWindow: () => mainWindow,
+    getTimerControls,
+    showLockscreen,
+    hideLockscreen
+  })
   createMainWindow()
   createFloatingWindow()
   createLockscreenWindow()
@@ -402,6 +442,7 @@ app.whenReady().then(() => {
   setupFloatingIpc()
   setupLockscreenIpc()
   setupEmergencyExit()
+  setupAudioIpc()
 
   if (!isGnomeDesktop()) {
     createTray()
@@ -416,8 +457,13 @@ app.whenReady().then(() => {
       if (tray) updateTrayMenu(status)
       if (tray && status === 'idle') setTrayIdle()
       updateFloatingVisibility()
-    }
+    },
+    onPrayerTime: triggerPrayerAlert
   })
+
+  if (store.get('settings.prayerEnabled', false)) {
+    enablePrayerSchedule()
+  }
 })
 
 app.on('will-quit', () => {
