@@ -13,6 +13,7 @@
     "lint": "oxlint"
   },
   "dependencies": {
+    "canvas": "^3.2.3",
     "electron-store": "^11.0.2",
     "howler": "^2.2.4",
     "node-schedule": "^2.1.1",
@@ -55,7 +56,9 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     },
@@ -63,7 +66,10 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["x64", "arm64"]
+          "arch": [
+            "x64",
+            "arm64"
+          ]
         }
       ]
     },
@@ -71,7 +77,9 @@
       "target": [
         {
           "target": "deb",
-          "arch": ["x64"]
+          "arch": [
+            "x64"
+          ]
         }
       ]
     }
