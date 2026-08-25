@@ -3,6 +3,17 @@ import { PomodoroTimer } from './timer.js'
 
 let timer = null
 
+const timerControls = {
+  pause: () => {},
+  resume: () => {},
+  stop: () => {},
+  getStatus: () => 'idle'
+}
+
+export function getTimerControls() {
+  return timerControls
+}
+
 function sendToAll(getWindows, channel, payload) {
   const { mainWindow, floatingWindow, lockscreenWindow } = getWindows()
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload)
@@ -63,6 +74,17 @@ export function initializeIpc(getWindows) {
     if (timer) timer.stop()
     return { success: true }
   })
+
+  timerControls.pause = () => {
+    if (timer) timer.pause()
+  }
+  timerControls.resume = () => {
+    if (timer) timer.resume()
+  }
+  timerControls.stop = () => {
+    if (timer) timer.stop()
+  }
+  timerControls.getStatus = () => 'idle'
 
   ipcMain.on('window:minimize', () => {
     const { mainWindow, floatingWindow } = getWindows()

@@ -1,6 +1,6 @@
-import { app, BrowserWindow, ipcMain, screen } from 'electron'
+import { app, BrowserWindow, globalShortcut, ipcMain, screen } from 'electron'
 import { join } from 'path'
-import { initializeIpc } from './ipc.js'
+import { initializeIpc, getTimerControls } from './ipc.js'
 
 let mainWindow = null
 let floatingWindow = null
@@ -93,6 +93,12 @@ function createLockscreenWindow() {
       lockscreenWindow.focus()
     }
   })
+
+  lockscreenWindow.on('close', (e) => {
+    if (lockscreenIsActive) {
+      e.preventDefault()
+    }
+  })
 }
 
 function createSecondaryLockscreens() {
@@ -176,10 +182,29 @@ function setupLockscreenIpc() {
   ipcMain.on('lockscreen:hide', () => {
     hideLockscreen()
   })
+
+  ipcMain.on('prayer:done', () => {
+    hideLockscreen()
+    getTimerControls().resume()
+  })
 }
 
 function getWindows() {
   return { mainWindow, floatingWindow, lockscreenWindow }
+}
+
+function showMainWindow() {
+  if (!mainWindow || mainWindow.isDestroyed()) return
+  mainWindow.show()
+  mainWindow.focus()
+}
+
+function setupEmergencyExit() {
+  globalShortcut.register('CommandOrControl+Shift+U', () => {
+    hideLockscreen()
+    getTimerControls().stop()
+    showMainWindow()
+  })
 }
 
 app.whenReady().then(() => {
@@ -187,7 +212,12 @@ app.whenReady().then(() => {
   createFloatingWindow()
   createLockscreenWindow()
   setupLockscreenIpc()
+  setupEmergencyExit()
   initializeIpc(getWindows)
+})
+
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll()
 })
 
 app.on('window-all-closed', () => {
