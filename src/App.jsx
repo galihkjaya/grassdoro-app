@@ -34,6 +34,13 @@ function App() {
       audioPlayer.playAlarm()
       useTimerStore.getState().setComplete(payload)
     })
+
+    window.electronAPI.on('session:scheduled-starting', (cfg) => {
+      const state = useTimerStore.getState()
+      state.setConfig(cfg)
+      // Show a toast/banner if main window is open: "Session starting in 5s..."
+      state.setScheduledStarting(cfg)
+    })
   }, [])
 
   useEffect(() => {
