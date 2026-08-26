@@ -2,6 +2,7 @@ import { ipcMain } from 'electron'
 import { PomodoroTimer } from './timer.js'
 import { fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts, resumeAfterPrayer } from './prayer.js'
 import { enableDND, disableDND } from './dnd.js'
+import { Notification } from 'electron'
 
 let timer = null
 let timerStatus = 'idle'
@@ -70,6 +71,31 @@ export function initializeIpc(getWindows, hooks = {}) {
     }
   }
 
+  function goalProgressFor(store, totalElapsed = 0) {
+    const today = new Date().toISOString().split('T')[0]
+    const todayFocusSeconds = store.get(`dailyFocus.${today}`, 0) + totalElapsed
+    const goalMinutes = store.get('dailyGoalMinutes', 240)
+    return {
+      today,
+      todayFocusSeconds,
+      goalProgress: Math.min(todayFocusSeconds / (goalMinutes * 60), 1.0)
+    }
+  }
+
+  function checkGoalReached(hooks, progress) {
+    const store = hooks.store
+    if (!store) return
+    if (progress.goalProgress >= 1.0 && !store.get(`goalNotified.${progress.today}`, false)) {
+      store.set(`goalNotified.${progress.today}`, true)
+      try {
+        new Notification({
+          title: '🌿 Grassdoro',
+          body: 'Daily focus goal reached! Great work today.'
+        }).show()
+      } catch {}
+    }
+  }
+
   ipcMain.handle('timer:start', (event, config) => {
     const { focusMin, breakMin, totalMin, longBreakMin, sessionsBeforeLongBreak } = config
 
@@ -85,12 +111,15 @@ export function initializeIpc(getWindows, hooks = {}) {
       sessionsBeforeLongBreak,
       onTick: (timeLeft, phase, sessionCount) => {
         const totalSeconds = focusMin * 60
+        const progress = hooks.store ? goalProgressFor(hooks.store, timer.totalElapsed) : null
+        if (progress) checkGoalReached(hooks, progress)
         sendToAll(getWindows, 'timer:tick', {
           timeLeft,
           phase,
           sessionCount,
           totalElapsed: timer.totalElapsed,
-          totalSeconds: timer.totalSeconds
+          totalSeconds: timer.totalSeconds,
+          goalProgress: progress?.goalProgress ?? 0
         })
         hooks.onTimerTick?.(timeLeft, phase)
       },
@@ -234,6 +263,20 @@ export function initializeIpc(getWindows, hooks = {}) {
 
   ipcMain.on('prayer:done', () => {
     resumeAfterPrayer()
+  })
+
+  ipcMain.handle('goal:set', (event, goalMinutes) => {
+    hooks.store?.set('dailyGoalMinutes', goalMinutes)
+    return { success: true }
+  })
+
+  ipcMain.handle('goal:get', () => {
+    const store = hooks.store
+    if (!store) return { goalMinutes: 240, todayFocusSeconds: 0 }
+    const goalMinutes = store.get('dailyGoalMinutes', 240) // default 4 hours
+    const today = new Date().toISOString().split('T')[0]
+    const todayFocusSeconds = store.get(`dailyFocus.${today}`, 0)
+    return { goalMinutes, todayFocusSeconds }
   })
 
   ipcMain.handle('dnd:set', (event, enabled) => {

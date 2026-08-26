@@ -13,6 +13,7 @@ export default function FloatingWidget() {
   const totalTime = useTimerStore((s) => s.totalTime)
   const dailyFocusSeconds = useTimerStore((s) => s.dailyFocusSeconds)
   const dailyGoalSeconds = useTimerStore((s) => s.dailyGoalSeconds)
+  const goalProgress = useTimerStore((s) => s.goalProgress)
   const [status, setStatus] = useState('idle')
   const dragState = useRef(null)
   const clickTimeout = useRef(null)
@@ -27,12 +28,14 @@ export default function FloatingWidget() {
   const running = status === 'running'
   const paused = status === 'paused'
 
-  let progress = 0
-  if (dailyGoalSeconds > 0) {
+  // Goal progress from tick payload; fallback to session progress before first tick
+  let progress = goalProgress
+  if (!progress && dailyGoalSeconds > 0) {
     progress = Math.min(dailyFocusSeconds / dailyGoalSeconds, 1)
-  } else if (totalTime > 0) {
+  } else if (!progress && totalTime > 0) {
     progress = Math.min(totalElapsed / totalTime, 1)
   }
+  const goalReached = progress >= 1.0
 
   const togglePauseResume = () => {
     if (running) {
@@ -89,10 +92,10 @@ export default function FloatingWidget() {
         >
           {formatTime(timeLeft)}
         </span>
-        <div className="w-[70%] h-[3px] bg-white/10 rounded-full overflow-hidden">
+        <div className="w-full h-[3px] bg-white/10 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#4ade80] rounded-full transition-all duration-500 ease-linear"
-            style={{ width: `${progress * 100}%` }}
+            className={`h-full rounded-full transition-all duration-500 ease-linear ${goalReached ? 'animate-pulse' : ''}`}
+            style={{ width: `${progress * 100}%`, backgroundColor: goalReached ? '#4ade80' : '#4ade80CC' }}
           />
         </div>
       </div>
