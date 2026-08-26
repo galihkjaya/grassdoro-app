@@ -127,11 +127,11 @@ pnpm package:linux
 - [x] Lockscreen overlay
 - [x] Prayer time integration
 - [x] Lofi music player
-- [ ] Scheduled sessions
-- [ ] Auto-launch
-- [ ] Stats & history
-- [ ] DND integration
-- [ ] GitHub Actions CI/CD
+- [x] Scheduled sessions
+- [x] Auto-launch
+- [x] Stats & history
+- [x] DND integration
+- [x] GitHub Actions CI/CD
 - [ ] Landing page (gh-pages)
 
 ---

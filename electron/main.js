@@ -6,6 +6,7 @@ import { initializeIpc, getTimerControls } from './ipc.js'
 import { initPrayer, getPrayerTimes, schedulePrayerAlerts, triggerPrayerInterrupt } from './prayer.js'
 import { initScheduleManager, setupScheduledSessions } from './scheduleManager.js'
 import { initAutoLaunch } from './autolaunch.js'
+import { initDnd, disableDND } from './dnd.js'
 
 let mainWindow = null
 let floatingWindow = null
@@ -480,6 +481,8 @@ app.whenReady().then(() => {
     isGNOME: isGnomeDesktop
   })
 
+  initDnd({ getWindows })
+
   const savedSchedule = store.get('scheduleConfig', [])
   if (savedSchedule.length > 0) {
     setupScheduledSessions(savedSchedule)
@@ -488,6 +491,10 @@ app.whenReady().then(() => {
   if (store.get('settings.prayerEnabled', false)) {
     enablePrayerSchedule()
   }
+})
+
+app.on('before-quit', () => {
+  disableDND()
 })
 
 app.on('will-quit', () => {

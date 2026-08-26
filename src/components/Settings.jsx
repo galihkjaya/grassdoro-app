@@ -7,11 +7,22 @@ export default function Settings() {
   const setStoreConfig = useTimerStore((s) => s.setConfig)
   const [volume, setVolume] = useState(50)
   const [lofiAvailable, setLofiAvailable] = useState(false)
+  const [dndEnabled, setDndEnabled] = useState(false)
+  const [dndPlatform, setDndPlatform] = useState(null)
+  const [goalHours, setGoalHours] = useState(4)
 
   useEffect(() => {
     window.electronAPI.invoke('audio:get-lofi-files').then((files) => {
       setLofiAvailable(Array.isArray(files) && files.length > 0)
     }).catch(() => setLofiAvailable(false))
+    window.electronAPI.invoke('dnd:get').then((state) => {
+      if (!state) return
+      setDndEnabled(state.enabled)
+      setDndPlatform(state.platform)
+    }).catch(() => {})
+    window.electronAPI.invoke('goal:get').then((state) => {
+      if (state?.goalMinutes) setGoalHours(Math.round(state.goalMinutes / 60))
+    }).catch(() => {})
     audioPlayer.init()
   }, [])
 
@@ -28,6 +39,17 @@ export default function Settings() {
     } else {
       audioPlayer.stopLofi()
     }
+  }
+
+  const handleDndToggle = () => {
+    const next = !dndEnabled
+    setDndEnabled(next)
+    window.electronAPI.invoke('dnd:set', next)
+  }
+
+  const handleGoalChange = (value) => {
+    setGoalHours(value)
+    window.electronAPI.invoke('goal:set', value * 60)
   }
 
   return (
@@ -62,6 +84,48 @@ export default function Settings() {
         {!lofiAvailable && (
           <p className="text-xs text-white/30">Add .mp3 files to assets/lofi/</p>
         )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-white/70">Do Not Disturb</span>
+          <button
+            onClick={handleDndToggle}
+            className={`
+              relative w-11 h-6 rounded-full transition-colors duration-200
+              ${dndEnabled ? 'bg-[#4ade80]' : 'bg-white/15'}
+            `}
+          >
+            <span
+              className={`
+                absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
+                ${dndEnabled ? 'left-[22px]' : 'left-0.5'}
+              `}
+            />
+          </button>
+        </div>
+        {dndPlatform === 'win32' && (
+          <p className="text-xs text-white/30">
+            Windows Focus Assist requires manual setup. Grassdoro will show an in-app indicator instead.
+          </p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-white/70">Daily Focus Goal</span>
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="1"
+              max="16"
+              value={goalHours}
+              onChange={(e) => handleGoalChange(parseInt(e.target.value, 10) || 1)}
+              className="w-14 bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white font-mono text-right focus:outline-none focus:border-white/20 transition-colors"
+            />
+            <span className="text-xs text-white/40">hours</span>
+          </div>
+        </div>
       </div>
 
       <div className="flex flex-col gap-3">

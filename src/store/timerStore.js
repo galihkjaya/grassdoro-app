@@ -9,6 +9,7 @@ const useTimerStore = create((set, get) => ({
   totalElapsed: 0,
   dailyFocusSeconds: 0,
   dailyGoalSeconds: 0,
+  goalProgress: 0,
 
   focusMin: 25,
   breakMin: 5,
@@ -77,6 +78,7 @@ const useTimerStore = create((set, get) => ({
     sessionCount: payload.sessionCount,
     totalElapsed: payload.totalElapsed,
     totalTime: payload.totalSeconds,
+    goalProgress: payload.goalProgress ?? get().goalProgress,
   }),
 
   updatePhase: (payload) => set({
