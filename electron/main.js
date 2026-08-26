@@ -5,6 +5,7 @@ import Store from 'electron-store'
 import { initializeIpc, getTimerControls } from './ipc.js'
 import { initPrayer, getPrayerTimes, schedulePrayerAlerts, triggerPrayerInterrupt } from './prayer.js'
 import { initScheduleManager, setupScheduledSessions } from './scheduleManager.js'
+import { initAutoLaunch } from './autolaunch.js'
 
 let mainWindow = null
 let floatingWindow = null
@@ -173,7 +174,12 @@ function createMainWindow() {
   }
 
   mainWindow.once('ready-to-show', () => {
-    mainWindow.show()
+    if (launchedViaAutostart) {
+      // Started minimized to tray — wait for scheduled session to trigger
+      mainWindow.hide()
+    } else {
+      mainWindow.show()
+    }
   })
 }
 
@@ -426,6 +432,8 @@ function enablePrayerSchedule() {
 
 app.whenReady().then(() => {
   store = new Store()
+  const launchedViaAutostart = process.argv.includes('--autolaunch')
+  initAutoLaunch(store)
   initPrayer({
     store,
     getCity: () => store.get('settings.city', 'Jakarta'),

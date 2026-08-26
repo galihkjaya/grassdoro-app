@@ -3,6 +3,7 @@ import { PomodoroTimer } from './timer.js'
 import { fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts, resumeAfterPrayer } from './prayer.js'
 
 import { setupScheduledSessions } from './scheduleManager.js'
+import { setAutoLaunch, getAutoLaunch } from './autolaunch.js'
 
 let timer = null
 let timerStatus = 'idle'
@@ -199,7 +200,12 @@ export function initializeIpc(getWindows, hooks = {}) {
   })
 
   ipcMain.handle('autolaunch:set', (event, enabled) => {
-    // TODO: set auto-launch
+    setAutoLaunch(enabled)
+    return { success: true }
+  })
+
+  ipcMain.handle('autolaunch:get', () => {
+    return getAutoLaunch()
   })
 
   ipcMain.handle('stats:get', () => {
