@@ -17,6 +17,7 @@ const useTimerStore = create((set, get) => ({
   sessionsBeforeLongBreak: 4,
   musicEnabled: true,
   prayerEnabled: false,
+  scheduledStarting: null,
 
   setConfig: (config) => set({
     focusMin: config.focusMin ?? 25,
@@ -27,6 +28,10 @@ const useTimerStore = create((set, get) => ({
     musicEnabled: config.musicEnabled ?? true,
     prayerEnabled: config.prayerEnabled ?? false,
   }),
+
+  setScheduledStarting: (cfg) => set({ scheduledStarting: cfg }),
+
+  clearScheduledStarting: () => set({ scheduledStarting: null }),
 
   startTimer: async () => {
     const state = get()

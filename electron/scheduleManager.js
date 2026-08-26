@@ -46,6 +46,8 @@ export function setupScheduledSessions(scheduleConfig) {
 }
 
 export function startScheduledSession(cfg) {
+  // If app was launched via --autolaunch, mainWindow is already hidden —
+  // just show floating widget (GNOME) or update tray to signal session starting
   if (isGNOME()) {
     const { floatingWindow } = deps.getWindows?.() || {}
     if (floatingWindow && !floatingWindow.isDestroyed()) {
@@ -57,12 +59,21 @@ export function startScheduledSession(cfg) {
 
   try {
     new Notification({
-      title: 'Grassdoro',
-      body: `Deep work session started — ${cfg.totalMin} minutes`
+      title: '🌿 Grassdoro',
+      body: `Deep work session starting — ${cfg.totalMin} min total`
     }).show()
   } catch {}
 
-  createAndStartTimer(cfg)
+  // Send IPC to renderer to update UI state even if window is hidden
+  const mainWindow = deps.getMainWindow?.()
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('session:scheduled-starting', cfg)
+  }
+
+  // Wait 5 seconds then auto-start timer (gives user chance to cancel)
+  setTimeout(() => {
+    createAndStartTimer(cfg)
+  }, 5000)
 }
 
 export function createAndStartTimer(cfg) {

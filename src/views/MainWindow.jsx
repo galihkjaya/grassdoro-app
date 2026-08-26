@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import TimerDisplay from '../components/TimerDisplay'
 import ScheduleConfig from '../components/ScheduleConfig'
 import StatsGraph from '../components/StatsGraph'
 import Settings from '../components/Settings'
+import useTimerStore from '../store/timerStore'
 
 const NAV_ITEMS = [
   { id: 'timer', label: 'Timer', icon: TimerIcon },
@@ -52,6 +53,21 @@ function CogIcon() {
 
 export default function MainWindow() {
   const [activeView, setActiveView] = useState('timer')
+  const scheduledStarting = useTimerStore((s) => s.scheduledStarting)
+  const clearScheduledStarting = useTimerStore((s) => s.clearScheduledStarting)
+  const status = useTimerStore((s) => s.status)
+
+  useEffect(() => {
+    if (!scheduledStarting) return
+    const timeout = setTimeout(() => clearScheduledStarting(), 6000)
+    return () => clearTimeout(timeout)
+  }, [scheduledStarting, clearScheduledStarting])
+
+  useEffect(() => {
+    if (status === 'running' && scheduledStarting) {
+      clearScheduledStarting()
+    }
+  }, [status, scheduledStarting, clearScheduledStarting])
 
   const renderView = () => {
     switch (activeView) {
@@ -64,7 +80,7 @@ export default function MainWindow() {
   }
 
   return (
-    <div className="flex h-screen bg-[#111111] text-white select-none">
+    <div className="relative flex h-screen bg-[#111111] text-white select-none">
       {/* Sidebar */}
       <div className="w-16 flex flex-col items-center py-6 gap-2 border-r border-white/5">
         {NAV_ITEMS.map((item) => (
@@ -89,6 +105,16 @@ export default function MainWindow() {
       <div className="flex-1 flex items-center justify-center overflow-hidden">
         {renderView()}
       </div>
+
+      {/* Scheduled session toast */}
+      {scheduledStarting && (
+        <div className="absolute top-4 right-4 z-50 flex items-center gap-2 rounded-lg bg-[#1a2e1f] border border-[#4ade80]/30 px-4 py-2.5 shadow-lg">
+          <span className="text-[#4ade80]">🌿</span>
+          <span className="text-sm text-white">
+            Session starting in 5s... ({scheduledStarting.totalMin} min)
+          </span>
+        </div>
+      )}
     </div>
   )
 }

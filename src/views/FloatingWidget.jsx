@@ -13,7 +13,10 @@ export default function FloatingWidget() {
   const totalTime = useTimerStore((s) => s.totalTime)
   const dailyFocusSeconds = useTimerStore((s) => s.dailyFocusSeconds)
   const dailyGoalSeconds = useTimerStore((s) => s.dailyGoalSeconds)
+  const scheduledStarting = useTimerStore((s) => s.scheduledStarting)
+  const clearScheduledStarting = useTimerStore((s) => s.clearScheduledStarting)
   const [status, setStatus] = useState('idle')
+  const [startCountdown, setStartCountdown] = useState(5)
   const dragState = useRef(null)
   const clickTimeout = useRef(null)
 
@@ -23,6 +26,25 @@ export default function FloatingWidget() {
       if (clickTimeout.current) clearTimeout(clickTimeout.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (!scheduledStarting) return
+    setStartCountdown(5)
+    const interval = setInterval(() => {
+      setStartCountdown((prev) => (prev > 1 ? prev - 1 : 1))
+    }, 1000)
+    const timeout = setTimeout(() => clearScheduledStarting(), 6000)
+    return () => {
+      clearInterval(interval)
+      clearTimeout(timeout)
+    }
+  }, [scheduledStarting, clearScheduledStarting])
+
+  useEffect(() => {
+    if (status !== 'idle' && scheduledStarting) {
+      clearScheduledStarting()
+    }
+  }, [status, scheduledStarting, clearScheduledStarting])
 
   const running = status === 'running'
   const paused = status === 'paused'
@@ -83,12 +105,20 @@ export default function FloatingWidget() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
       >
-        <span
-          className="font-mono text-2xl font-bold tabular-nums tracking-wider leading-none transition-colors duration-300"
-          style={{ color: running ? '#4ade80' : '#9ca3af' }}
-        >
-          {formatTime(timeLeft)}
-        </span>
+        {scheduledStarting ? (
+          <span
+            className="font-mono text-sm font-bold tracking-wider leading-none text-[#4ade80] animate-pulse"
+          >
+            Starting in {startCountdown}s
+          </span>
+        ) : (
+          <span
+            className="font-mono text-2xl font-bold tabular-nums tracking-wider leading-none transition-colors duration-300"
+            style={{ color: running ? '#4ade80' : '#9ca3af' }}
+          >
+            {formatTime(timeLeft)}
+          </span>
+        )}
         <div className="w-[70%] h-[3px] bg-white/10 rounded-full overflow-hidden">
           <div
             className="h-full bg-[#4ade80] rounded-full transition-all duration-500 ease-linear"
