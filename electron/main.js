@@ -4,6 +4,7 @@ import { existsSync, readdirSync } from 'fs'
 import Store from 'electron-store'
 import { initializeIpc, getTimerControls } from './ipc.js'
 import { initPrayer, getPrayerTimes, schedulePrayerAlerts, triggerPrayerInterrupt } from './prayer.js'
+import { initScheduleManager, setupScheduledSessions } from './scheduleManager.js'
 
 let mainWindow = null
 let floatingWindow = null
@@ -449,6 +450,7 @@ app.whenReady().then(() => {
   }
 
   initializeIpc(getWindows, {
+    store,
     onTimerTick: (timeLeft, phase) => {
       if (tray) updateTrayTitle(timeLeft, phase)
     },
@@ -460,6 +462,20 @@ app.whenReady().then(() => {
     },
     onPrayerTime: triggerPrayerAlert
   })
+
+  initScheduleManager({
+    store,
+    getWindows,
+    getMainWindow: () => mainWindow,
+    getTimerControls,
+    updateTrayTitle,
+    isGNOME: isGnomeDesktop
+  })
+
+  const savedSchedule = store.get('scheduleConfig', [])
+  if (savedSchedule.length > 0) {
+    setupScheduledSessions(savedSchedule)
+  }
 
   if (store.get('settings.prayerEnabled', false)) {
     enablePrayerSchedule()

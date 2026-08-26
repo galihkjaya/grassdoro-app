@@ -2,10 +2,13 @@ import { ipcMain } from 'electron'
 import { PomodoroTimer } from './timer.js'
 import { fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts, resumeAfterPrayer } from './prayer.js'
 
+import { setupScheduledSessions } from './scheduleManager.js'
+
 let timer = null
 let timerStatus = 'idle'
 
 const timerControls = {
+  start: () => {},
   pause: () => {},
   resume: () => {},
   stop: () => {},
@@ -14,6 +17,10 @@ const timerControls = {
 
 export function getTimerControls() {
   return timerControls
+}
+
+export function getActiveTimer() {
+  return timer
 }
 
 function sendToAll(getWindows, channel, payload) {
@@ -30,7 +37,7 @@ export function initializeIpc(getWindows, hooks = {}) {
     hooks.onTimerState?.(status)
   }
 
-  ipcMain.handle('timer:start', (event, config) => {
+  function createAndStart(config) {
     const { focusMin, breakMin, totalMin, longBreakMin, sessionsBeforeLongBreak } = config
 
     if (timer) {
@@ -44,7 +51,6 @@ export function initializeIpc(getWindows, hooks = {}) {
       longBreakMin,
       sessionsBeforeLongBreak,
       onTick: (timeLeft, phase, sessionCount) => {
-        const totalSeconds = focusMin * 60
         sendToAll(getWindows, 'timer:tick', {
           timeLeft,
           phase,
@@ -69,6 +75,10 @@ export function initializeIpc(getWindows, hooks = {}) {
 
     timer.start()
     notifyState('running')
+  }
+
+  ipcMain.handle('timer:start', (event, config) => {
+    createAndStart(config)
     return { success: true }
   })
 
@@ -96,6 +106,9 @@ export function initializeIpc(getWindows, hooks = {}) {
     return { success: true }
   })
 
+  timerControls.start = (config) => {
+    if (config) createAndStart(config)
+  }
   timerControls.pause = () => {
     if (timer) {
       timer.pause()
@@ -173,6 +186,16 @@ export function initializeIpc(getWindows, hooks = {}) {
 
   ipcMain.on('prayer:done', () => {
     resumeAfterPrayer()
+  })
+
+  ipcMain.handle('schedule:set', (event, scheduleConfig) => {
+    hooks.store?.set('scheduleConfig', scheduleConfig)
+    setupScheduledSessions(scheduleConfig)
+    return { success: true }
+  })
+
+  ipcMain.handle('schedule:get', () => {
+    return hooks.store?.get('scheduleConfig', []) ?? []
   })
 
   ipcMain.handle('autolaunch:set', (event, enabled) => {
