@@ -16,6 +16,34 @@ export function getTimerControls() {
   return timerControls
 }
 
+function logSession(hooks, payload) {
+  const store = hooks.store
+  if (!store) return
+
+  // payload: { totalFocusSeconds, sessionCount, completed }
+  const history = store.get('sessionHistory', [])
+
+  const entry = {
+    date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+    totalFocusSeconds: payload.totalFocusSeconds,
+    sessionCount: payload.sessionCount,
+    completed: payload.completed, // true if finished naturally, false if stopped early
+    timestamp: Date.now()
+  }
+
+  history.push(entry)
+
+  // Keep max 365 entries (1 year)
+  if (history.length > 365) history.shift()
+
+  store.set('sessionHistory', history)
+
+  // Update daily focus total
+  const today = entry.date
+  const dailyTotal = store.get(`dailyFocus.${today}`, 0)
+  store.set(`dailyFocus.${today}`, dailyTotal + payload.totalFocusSeconds)
+}
+
 function sendToAll(getWindows, channel, payload) {
   const { mainWindow, floatingWindow, lockscreenWindow } = getWindows()
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload)
@@ -63,6 +91,11 @@ export function initializeIpc(getWindows, hooks = {}) {
           totalFocusSeconds: sessionCount * (focusMin * 60),
           sessionCount
         })
+        logSession(hooks, {
+          totalFocusSeconds: sessionCount * (focusMin * 60),
+          sessionCount,
+          completed: true
+        })
         notifyState('idle')
       }
     })
@@ -88,9 +121,21 @@ export function initializeIpc(getWindows, hooks = {}) {
     return { success: true }
   })
 
+  function stopActiveTimer() {
+    if (!timer) return
+    if (timer.totalElapsed > 0) {
+      logSession(hooks, {
+        totalFocusSeconds: timer.focusElapsed,
+        sessionCount: timer.sessionCount,
+        completed: false
+      })
+    }
+    timer.stop()
+  }
+
   ipcMain.handle('timer:stop', () => {
     if (timer) {
-      timer.stop()
+      stopActiveTimer()
       notifyState('idle')
     }
     return { success: true }
@@ -110,7 +155,7 @@ export function initializeIpc(getWindows, hooks = {}) {
   }
   timerControls.stop = () => {
     if (timer) {
-      timer.stop()
+      stopActiveTimer()
       notifyState('idle')
     }
   }
@@ -180,11 +225,35 @@ export function initializeIpc(getWindows, hooks = {}) {
   })
 
   ipcMain.handle('stats:get', () => {
-    // TODO: get stats from store
-    return null
+    const store = hooks.store
+    if (!store) return null
+
+    const history = store.get('sessionHistory', [])
+    const today = new Date().toISOString().split('T')[0]
+
+    // Calculate streak
+    let streak = 0
+    const checkDate = new Date()
+    while (streak < 730) {
+      const dateStr = checkDate.toISOString().split('T')[0]
+      const hasSession = history.some((e) => e.date === dateStr && e.totalFocusSeconds > 0)
+      if (!hasSession) break
+      streak++
+      checkDate.setDate(checkDate.getDate() - 1)
+    }
+
+    // Total focus hours all time
+    const totalFocusSeconds = history.reduce((sum, e) => sum + e.totalFocusSeconds, 0)
+
+    // Today's focus
+    const todayFocus = store.get(`dailyFocus.${today}`, 0)
+
+    return { history, streak, totalFocusSeconds, todayFocus }
   })
 
-  ipcMain.handle('stats:log-session', (event, session) => {
-    // TODO: log session to store
+  ipcMain.handle('stats:clear', () => {
+    hooks.store?.delete('sessionHistory')
+    hooks.store?.delete('dailyFocus')
+    return { success: true }
   })
 }

@@ -449,6 +449,7 @@ app.whenReady().then(() => {
   }
 
   initializeIpc(getWindows, {
+    store,
     onTimerTick: (timeLeft, phase) => {
       if (tray) updateTrayTitle(timeLeft, phase)
     },
