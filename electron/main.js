@@ -4,6 +4,7 @@ import { existsSync, readdirSync } from 'fs'
 import Store from 'electron-store'
 import { initializeIpc, getTimerControls } from './ipc.js'
 import { initPrayer, getPrayerTimes, schedulePrayerAlerts, triggerPrayerInterrupt } from './prayer.js'
+import { initDnd, disableDND } from './dnd.js'
 
 let mainWindow = null
 let floatingWindow = null
@@ -462,9 +463,15 @@ app.whenReady().then(() => {
     onPrayerTime: triggerPrayerAlert
   })
 
+  initDnd({ getWindows })
+
   if (store.get('settings.prayerEnabled', false)) {
     enablePrayerSchedule()
   }
+})
+
+app.on('before-quit', () => {
+  disableDND()
 })
 
 app.on('will-quit', () => {

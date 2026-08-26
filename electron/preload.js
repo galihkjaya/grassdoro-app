@@ -11,7 +11,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'timer:state',
       'lockscreen:type',
       'audio:stop-lofi',
-      'audio:resume-lofi'
+      'audio:resume-lofi',
+      'dnd:status'
     ]
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => callback(...args))

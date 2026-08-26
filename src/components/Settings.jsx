@@ -7,11 +7,18 @@ export default function Settings() {
   const setStoreConfig = useTimerStore((s) => s.setConfig)
   const [volume, setVolume] = useState(50)
   const [lofiAvailable, setLofiAvailable] = useState(false)
+  const [dndEnabled, setDndEnabled] = useState(false)
+  const [dndPlatform, setDndPlatform] = useState(null)
 
   useEffect(() => {
     window.electronAPI.invoke('audio:get-lofi-files').then((files) => {
       setLofiAvailable(Array.isArray(files) && files.length > 0)
     }).catch(() => setLofiAvailable(false))
+    window.electronAPI.invoke('dnd:get').then((state) => {
+      if (!state) return
+      setDndEnabled(state.enabled)
+      setDndPlatform(state.platform)
+    }).catch(() => {})
     audioPlayer.init()
   }, [])
 
@@ -28,6 +35,12 @@ export default function Settings() {
     } else {
       audioPlayer.stopLofi()
     }
+  }
+
+  const handleDndToggle = () => {
+    const next = !dndEnabled
+    setDndEnabled(next)
+    window.electronAPI.invoke('dnd:set', next)
   }
 
   return (
@@ -61,6 +74,31 @@ export default function Settings() {
         </div>
         {!lofiAvailable && (
           <p className="text-xs text-white/30">Add .mp3 files to assets/lofi/</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-white/70">Do Not Disturb</span>
+          <button
+            onClick={handleDndToggle}
+            className={`
+              relative w-11 h-6 rounded-full transition-colors duration-200
+              ${dndEnabled ? 'bg-[#4ade80]' : 'bg-white/15'}
+            `}
+          >
+            <span
+              className={`
+                absolute top-0.5 w-5 h-5 rounded-full bg-white transition-all duration-200
+                ${dndEnabled ? 'left-[22px]' : 'left-0.5'}
+              `}
+            />
+          </button>
+        </div>
+        {dndPlatform === 'win32' && (
+          <p className="text-xs text-white/30">
+            Windows Focus Assist requires manual setup. Grassdoro will show an in-app indicator instead.
+          </p>
         )}
       </div>
 

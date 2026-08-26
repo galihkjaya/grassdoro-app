@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { PomodoroTimer } from './timer.js'
 import { fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts, resumeAfterPrayer } from './prayer.js'
+import { enableDND, disableDND } from './dnd.js'
 
 let timer = null
 let timerStatus = 'idle'
@@ -58,6 +59,17 @@ export function initializeIpc(getWindows, hooks = {}) {
     hooks.onTimerState?.(status)
   }
 
+  const dndEnabled = () => hooks.store?.get('dndEnabled', false) ?? false
+
+  const applyDndForPhase = (phase) => {
+    if (!dndEnabled()) return
+    if (phase === 'focus') {
+      enableDND()
+    } else {
+      disableDND()
+    }
+  }
+
   ipcMain.handle('timer:start', (event, config) => {
     const { focusMin, breakMin, totalMin, longBreakMin, sessionsBeforeLongBreak } = config
 
@@ -84,6 +96,7 @@ export function initializeIpc(getWindows, hooks = {}) {
       },
       onPhaseChange: (phase, sessionCount) => {
         sendToAll(getWindows, 'timer:phase-change', { phase, sessionCount })
+        applyDndForPhase(phase)
         hooks.onPhaseChange?.(phase)
       },
       onComplete: (sessionCount) => {
@@ -96,11 +109,13 @@ export function initializeIpc(getWindows, hooks = {}) {
           sessionCount,
           completed: true
         })
+        if (dndEnabled()) disableDND()
         notifyState('idle')
       }
     })
 
     timer.start()
+    applyDndForPhase('focus')
     notifyState('running')
     return { success: true }
   })
@@ -131,6 +146,7 @@ export function initializeIpc(getWindows, hooks = {}) {
       })
     }
     timer.stop()
+    if (dndEnabled()) disableDND()
   }
 
   ipcMain.handle('timer:stop', () => {
@@ -218,6 +234,18 @@ export function initializeIpc(getWindows, hooks = {}) {
 
   ipcMain.on('prayer:done', () => {
     resumeAfterPrayer()
+  })
+
+  ipcMain.handle('dnd:set', (event, enabled) => {
+    hooks.store?.set('dndEnabled', enabled)
+    return { success: true }
+  })
+
+  ipcMain.handle('dnd:get', () => {
+    return {
+      enabled: hooks.store?.get('dndEnabled', false) ?? false,
+      platform: process.platform
+    }
   })
 
   ipcMain.handle('autolaunch:set', (event, enabled) => {
