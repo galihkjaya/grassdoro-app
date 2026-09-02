@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Grassdoro — Pomodoro Timer for Deep Work</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: #0f0f0f;
+            color: #ffffff;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            min-height: 100vh;
+        }
+
+        /* NAV */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 24px 48px;
+            border-bottom: 1px solid #ffffff10;
+        }
+        .nav-logo {
+            font-size: 18px;
+            font-weight: 700;
+            color: #4ade80;
+            font-family: monospace;
+        }
+        .nav-links a {
+            color: #888;
+            text-decoration: none;
+            margin-left: 32px;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+        .nav-links a:hover { color: #fff; }
+
+        /* HERO */
+        .hero {
+            text-align: center;
+            padding: 100px 48px 80px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .hero-badge {
+            display: inline-block;
+            background: #4ade8015;
+            border: 1px solid #4ade8040;
+            color: #4ade80;
+            padding: 4px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            margin-bottom: 32px;
+        }
+        .hero h1 {
+            font-size: 64px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 24px;
+            font-family: monospace;
+        }
+        .hero h1 span { color: #4ade80; }
+        .hero p {
+            font-size: 18px;
+            color: #888;
+            line-height: 1.7;
+            margin-bottom: 48px;
+        }
+
+        /* DOWNLOAD BUTTONS */
+        .download-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+        .btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: 600;
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .btn-win {
+            background: #0078D4;
+            color: white;
+        }
+        .btn-win:hover { background: #006bc0; }
+        .btn-mac {
+            background: #1a1a1a;
+            color: white;
+            border-color: #333;
+        }
+        .btn-mac:hover { border-color: #555; }
+        .btn-linux {
+            background: #E95420;
+            color: white;
+        }
+        .btn-linux:hover { background: #d44d1d; }
+        .download-note {
+            font-size: 13px;
+            color: #555;
+        }
+
+        /* FEATURES */
+        .features {
+            padding: 80px 48px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .features h2 {
+            text-align: center;
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+        .features-subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 64px;
+            font-size: 16px;
+        }
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+        }
+        .feature-card {
+            background: #1a1a1a;
+            border: 1px solid #ffffff10;
+            border-radius: 16px;
+            padding: 28px;
+            transition: border-color 0.2s;
+        }
+        .feature-card:hover { border-color: #4ade8040; }
+        .feature-icon {
+            font-size: 28px;
+            margin-bottom: 16px;
+        }
+        .feature-card h3 {
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .feature-card p {
+            font-size: 14px;
+            color: #888;
+            line-height: 1.6;
+        }
+
+        /* PLATFORMS */
+        .platforms {
+            text-align: center;
+            padding: 40px 48px 80px;
+        }
+        .platforms p {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .platform-badges {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .platform-badge {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            padding: 6px 16px;
+            border-radius: 999px;
+            font-size: 13px;
+            color: #888;
+        }
+
+        /* FOOTER */
+        footer {
+            border-top: 1px solid #ffffff10;
+            padding: 32px 48px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #555;
+            font-size: 13px;
+        }
+        footer a {
+            color: #555;
+            text-decoration: none;
+        }
+        footer a:hover { color: #fff; }
+    </style>
+</head>
+<body>
+
+<nav>
+    <div class="nav-logo">❯ Grassdoro</div>
+    <div class="nav-links">
+        <a href="#features">Features</a>
+        <a href="https://github.com/galihkjaya/grassdoro-app">GitHub</a>
+        <a href="https://github.com/galihkjaya/grassdoro-app/releases/latest">Releases</a>
+    </div>
+</nav>
+
+<section class="hero">
+    <div class="hero-badge">🌿 Open Source · Free Forever</div>
+    <h1>Pomodoro for<br/><span>Deep Work</span></h1>
+    <p>
+        Grassdoro lives in your system tray, stays out of your way,<br/>
+        and enforces breaks so you actually rest.
+    </p>
+    <div class="download-buttons">
+        <a href="https://github.com/galihkjaya/grassdoro-app/releases/latest/download/Grassdoro-Setup.exe" class="btn btn-win">
+            🪟 Download for Windows
+        </a>
+        <a href="https://github.com/galihkjaya/grassdoro-app/releases/latest/download/Grassdoro.dmg" class="btn btn-mac">
+            🍎 Download for macOS
+        </a>
+        <a href="https://github.com/galihkjaya/grassdoro-app/releases/latest/download/Grassdoro.deb" class="btn btn-linux">
+            🐧 Download for Ubuntu
+        </a>
+    </div>
+    <div class="download-note">v1.0.0 · Also available on GitHub Releases</div>
+</section>
+
+<section class="features" id="features">
+    <h2>Everything you need.<br/>Nothing you don't.</h2>
+    <p class="features-subtitle">Built for people who take deep work seriously.</p>
+    <div class="features-grid">
+        <div class="feature-card">
+            <div class="feature-icon">⏱</div>
+            <h3>Pomodoro Timer</h3>
+            <p>Focus/break loop with long break support. Configurable durations, auto-starts on schedule.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🖥</div>
+            <h3>System Tray</h3>
+            <p>Lives in your tray with live timer. Single-click to pause, double-click to open. Always visible, never in the way.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📅</div>
+            <h3>Scheduled Sessions</h3>
+            <p>Set deep work times per weekday. Grassdoro auto-starts your session at the right time, every day.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🎵</div>
+            <h3>Lofi Music</h3>
+            <p>Plays during focus, stops on break. Bring your own tracks — just drop .mp3 files in the lofi folder.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🕌</div>
+            <h3>Prayer Time</h3>
+            <p>Auto-pauses at prayer times based on your city. Lockscreen reminder, then resumes where you left off.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Stats & Streaks</h3>
+            <p>GitHub-style contribution graph. Track your streak, total focus hours, and daily goal progress.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🔕</div>
+            <h3>Do Not Disturb</h3>
+            <p>Mutes OS notifications during focus sessions. Automatically re-enables on break.</p>
+        </div>
+        <div class="feature-card">
+            <div class="feature-icon">🚀</div>
+            <h3>Auto-launch</h3>
+            <p>Starts with your computer. Your schedule kicks in automatically, no manual launch needed.</p>
+        </div>
+    </div>
+</section>
+
+<section class="platforms">
+    <p>Available on</p>
+    <div class="platform-badges">
+        <span class="platform-badge">🪟 Windows 10/11</span>
+        <span class="platform-badge">🍎 macOS 12+</span>
+        <span class="platform-badge">🐧 Ubuntu 20.04+</span>
+    </div>
+</section>
+
+<footer>
+    <span>Made with 🌿 by <a href="https://github.com/galihkjaya">galihkjaya</a></span>
+    <span>
+        <a href="https://github.com/galihkjaya/grassdoro-app">GitHub</a> ·
+        <a href="https://github.com/galihkjaya/grassdoro-app/blob/main/LICENSE">MIT License</a>
+    </span>
+</footer>
+
+</body>
+</html>
