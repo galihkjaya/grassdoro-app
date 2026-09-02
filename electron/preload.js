@@ -13,7 +13,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       'audio:stop-lofi',
       'audio:resume-lofi',
       'session:scheduled-starting',
-      'dnd:status'
+      'dnd:status',
+      'show:onboarding'
     ]
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => callback(...args))

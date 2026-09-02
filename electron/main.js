@@ -155,6 +155,7 @@ function setupTrayEvents() {
 }
 
 function createMainWindow() {
+  const launchedViaAutostart = process.argv.includes('--autolaunch')
   mainWindow = new BrowserWindow({
     width: 900,
     height: 650,
@@ -180,6 +181,11 @@ function createMainWindow() {
       mainWindow.hide()
     } else {
       mainWindow.show()
+    }
+
+    // First launch: show the onboarding wizard
+    if (store && !store.get('onboardingDone', false)) {
+      mainWindow.webContents.send('show:onboarding')
     }
   })
 }
@@ -433,7 +439,6 @@ function enablePrayerSchedule() {
 
 app.whenReady().then(() => {
   store = new Store()
-  const launchedViaAutostart = process.argv.includes('--autolaunch')
   initAutoLaunch(store)
   initPrayer({
     store,

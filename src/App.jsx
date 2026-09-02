@@ -1,7 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import MainWindow from './views/MainWindow'
 import FloatingWidget from './views/FloatingWidget'
 import Lockscreen from './views/Lockscreen'
+import Onboarding from './views/Onboarding'
 import useTimerStore from './store/timerStore'
 import audioPlayer from './audio/audioPlayer'
 
@@ -10,7 +11,17 @@ function getWindowRoute() {
 }
 
 function App() {
+  const [showOnboarding, setShowOnboarding] = useState(false)
+
   useEffect(() => {
+    window.electronAPI.on('show:onboarding', () => setShowOnboarding(true))
+
+    // Only the main window hosts onboarding; floating/lockscreen have their own routes
+    if (getWindowRoute()) return
+    window.electronAPI.invoke('settings:get').then((settings) => {
+      if (settings && !settings.onboardingDone) setShowOnboarding(true)
+    }).catch(() => {})
+
     window.electronAPI.on('timer:tick', (payload) => {
       useTimerStore.getState().updateTick(payload)
     })
@@ -59,6 +70,7 @@ function App() {
   const route = getWindowRoute()
   if (route === 'floating') return <FloatingWidget />
   if (route === 'lockscreen') return <Lockscreen />
+  if (showOnboarding) return <Onboarding onDone={() => setShowOnboarding(false)} />
   return <MainWindow />
 }
 
