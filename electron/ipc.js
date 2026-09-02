@@ -1,8 +1,7 @@
-import { ipcMain } from 'electron'
+import { app, ipcMain, Notification, shell } from 'electron'
 import { PomodoroTimer } from './timer.js'
-import { fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts, resumeAfterPrayer } from './prayer.js'
+import { cancelPrayerSchedules, fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts, resumeAfterPrayer } from './prayer.js'
 import { enableDND, disableDND } from './dnd.js'
-import { Notification } from 'electron'
 
 import { setupScheduledSessions } from './scheduleManager.js'
 import { setAutoLaunch, getAutoLaunch } from './autolaunch.js'
@@ -226,6 +225,13 @@ export function initializeIpc(getWindows, hooks = {}) {
     if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.show()
   })
 
+  ipcMain.on('window:close', () => {
+    // Hide to tray instead of quitting — app keeps running in background
+    const { mainWindow, floatingWindow } = getWindows()
+    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.hide()
+    if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.show()
+  })
+
   ipcMain.on('window:show-main', () => {
     const { mainWindow, floatingWindow } = getWindows()
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
@@ -247,13 +253,77 @@ export function initializeIpc(getWindows, hooks = {}) {
     if (lockscreenWindow && !lockscreenWindow.isDestroyed()) lockscreenWindow.hide()
   })
 
-  ipcMain.handle('settings:get', (event, key) => {
-    // TODO: get from electron-store
-    return null
+  const defaultSettings = {
+    focusMin: 25,
+    breakMin: 5,
+    longBreakMin: 15,
+    sessionsBeforeLongBreak: 4,
+    totalMin: 120,
+    musicEnabled: false,
+    volume: 50,
+    prayerEnabled: false,
+    prayerCity: '',
+    prayerDurationMin: 10,
+    dndEnabled: false,
+    dailyGoalHours: 4,
+    autoLaunch: false
+  }
+
+  const getSettings = () => {
+    const store = hooks.store
+    const stored = store?.get('settings', {}) ?? {}
+    return {
+      ...defaultSettings,
+      ...stored,
+      // legacy top-level keys written by day-3 handlers
+      dndEnabled: stored.dndEnabled ?? store?.get('dndEnabled', false) ?? false,
+      autoLaunch: stored.autoLaunch ?? store?.get('autoLaunch', false) ?? false,
+      onboardingDone: store?.get('onboardingDone', stored.onboardingDone ?? false) ?? false,
+      version: app.getVersion(),
+      platform: process.platform
+    }
+  }
+
+  const reschedulePrayers = () => {
+    const store = hooks.store
+    cancelPrayerSchedules()
+    if (!store?.get('settings.prayerEnabled', false)) return
+    const city = store?.get('settings.prayerCity', '')
+    if (!city) return
+    const durationMin = store?.get('settings.prayerDurationMin', 10) ?? 10
+    getPrayerTimes(city).then((timings) => {
+      if (!timings) return
+      schedulePrayerAlerts(timings, { durationMin }, ({ prayerName, durationMin: dur }) => {
+        hooks.onPrayerTime?.({ prayerName, durationMin: dur })
+      })
+    }).catch(() => {})
+  }
+
+  ipcMain.handle('settings:get', () => getSettings())
+
+  ipcMain.handle('settings:set', (event, { key, value }) => {
+    const store = hooks.store
+    store?.set(`settings.${key}`, value)
+
+    if (key === 'autoLaunch') {
+      setAutoLaunch(Boolean(value))
+    } else if (key === 'dndEnabled') {
+      store?.set('dndEnabled', Boolean(value))
+    } else if (key === 'dailyGoalHours') {
+      store?.set('dailyGoalMinutes', Math.max(1, Number(value) || 1) * 60)
+    } else if (key === 'onboardingDone') {
+      store?.set('onboardingDone', Boolean(value))
+    } else if (['prayerEnabled', 'prayerCity', 'prayerDurationMin'].includes(key)) {
+      reschedulePrayers()
+    }
+    return { success: true }
   })
 
-  ipcMain.handle('settings:set', (event, key, value) => {
-    // TODO: set to electron-store
+  ipcMain.handle('shell:open-external', (event, url) => {
+    if (typeof url === 'string' && /^https?:\/\//.test(url)) {
+      shell.openExternal(url)
+    }
+    return { success: true }
   })
 
   ipcMain.handle('prayer:get-times', async (event, { city } = {}) => {
