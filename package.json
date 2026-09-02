@@ -2,6 +2,8 @@
   "name": "grassdoro-v2",
   "private": true,
   "version": "1.0.0",
+  "author": "galihkjaya <galihkjaya@users.noreply.github.com>",
+  "description": "A Pomodoro timer built for deep work",
   "main": "out/main/index.js",
   "type": "module",
   "scripts": {
@@ -42,6 +44,7 @@
       "output": "dist"
     },
     "files": [
+      "out/**/*",
       "electron/**/*",
       "src/**/*",
       "assets/**/*"
