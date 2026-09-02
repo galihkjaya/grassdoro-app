@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import useTimerStore from '../store/timerStore'
 
 function formatTime(seconds) {
@@ -48,6 +48,21 @@ export default function TimerDisplay() {
   const [config, setConfigState] = useState({
     focusMin, breakMin, totalMin: 60, longBreakMin, sessionsBeforeLongBreak,
   })
+
+  useEffect(() => {
+    window.electronAPI.invoke('settings:get').then((settings) => {
+      if (!settings) return
+      const cfg = {
+        focusMin: settings.focusMin,
+        breakMin: settings.breakMin,
+        totalMin: settings.totalMin,
+        longBreakMin: settings.longBreakMin,
+        sessionsBeforeLongBreak: settings.sessionsBeforeLongBreak,
+      }
+      setConfig(cfg)
+      setConfigState((prev) => ({ ...prev, ...cfg }))
+    }).catch(() => {})
+  }, [setConfig])
 
   const isRunning = status === 'focus' || status === 'break' || status === 'longbreak'
   const isPaused = status === 'paused'

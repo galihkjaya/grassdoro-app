@@ -9,6 +9,7 @@ const useTimerStore = create((set, get) => ({
   totalElapsed: 0,
   dailyFocusSeconds: 0,
   dailyGoalSeconds: 0,
+  goalProgress: 0,
 
   focusMin: 25,
   breakMin: 5,
@@ -17,6 +18,7 @@ const useTimerStore = create((set, get) => ({
   sessionsBeforeLongBreak: 4,
   musicEnabled: true,
   prayerEnabled: false,
+  scheduledStarting: null,
 
   setConfig: (config) => set({
     focusMin: config.focusMin ?? 25,
@@ -27,6 +29,10 @@ const useTimerStore = create((set, get) => ({
     musicEnabled: config.musicEnabled ?? true,
     prayerEnabled: config.prayerEnabled ?? false,
   }),
+
+  setScheduledStarting: (cfg) => set({ scheduledStarting: cfg }),
+
+  clearScheduledStarting: () => set({ scheduledStarting: null }),
 
   startTimer: async () => {
     const state = get()
@@ -72,6 +78,7 @@ const useTimerStore = create((set, get) => ({
     sessionCount: payload.sessionCount,
     totalElapsed: payload.totalElapsed,
     totalTime: payload.totalSeconds,
+    goalProgress: payload.goalProgress ?? get().goalProgress,
   }),
 
   updatePhase: (payload) => set({

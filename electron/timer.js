@@ -23,6 +23,7 @@ export class PomodoroTimer {
     this.phase = 'focus'
     this.sessionCount = 0
     this.totalElapsed = 0
+    this.focusElapsed = 0
     this.intervalId = null
   }
 
@@ -31,6 +32,7 @@ export class PomodoroTimer {
     this.phase = 'focus'
     this.sessionCount = 0
     this.totalElapsed = 0
+    this.focusElapsed = 0
     this.onTick(this.timeLeft, this.phase, this.sessionCount)
     this._startInterval()
   }
@@ -66,6 +68,9 @@ export class PomodoroTimer {
   _tick() {
     this.timeLeft--
     this.totalElapsed++
+    if (this.phase === 'focus') {
+      this.focusElapsed++
+    }
 
     if (this.timeLeft <= 0) {
       this._switchPhase()
