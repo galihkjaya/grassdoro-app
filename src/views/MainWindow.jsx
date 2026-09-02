@@ -51,6 +51,19 @@ function CogIcon() {
   )
 }
 
+function WindowButton({ onClick, title, children }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      className="w-9 h-9 flex items-center justify-center rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+      style={{ WebkitAppRegion: 'no-drag' }}
+    >
+      {children}
+    </button>
+  )
+}
+
 export default function MainWindow() {
   const [activeView, setActiveView] = useState('timer')
   const scheduledStarting = useTimerStore((s) => s.scheduledStarting)
@@ -80,35 +93,75 @@ export default function MainWindow() {
   }
 
   return (
-    <div className="relative flex h-screen bg-[#111111] text-white select-none">
-      {/* Sidebar */}
-      <div className="w-16 flex flex-col items-center py-6 gap-2 border-r border-white/5">
-        {NAV_ITEMS.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => setActiveView(item.id)}
-            className={`
-              w-10 h-10 flex items-center justify-center rounded-lg transition-all duration-200
-              ${activeView === item.id
-                ? 'bg-[#4ade80]/20 text-[#4ade80]'
-                : 'text-white/40 hover:text-white/70 hover:bg-white/5'
-              }
-            `}
-            title={item.label}
-          >
-            <item.icon />
-          </button>
-        ))}
+    <div className="relative flex flex-col h-screen bg-[#111111] text-white select-none">
+      {/* Custom title bar (frame: false) */}
+      <div
+        className="h-10 shrink-0 flex items-center px-3 gap-2 border-b border-white/5"
+        style={{ WebkitAppRegion: 'drag' }}
+      >
+        <span className="text-base leading-none">🍅</span>
+        <span className="text-sm font-semibold tracking-wide">Grassdoro</span>
+        <span className="flex-1" />
+        <WindowButton
+          onClick={() => window.electronAPI.send('window:minimize')}
+          title="Minimize to tray"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </WindowButton>
+        <WindowButton
+          onClick={() => window.electronAPI.send('window:close')}
+          title="Close (runs in tray)"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </WindowButton>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center overflow-hidden">
-        {renderView()}
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar */}
+        <div className="w-14 shrink-0 flex flex-col items-stretch pt-3 pb-4 gap-1 border-r border-white/5">
+          {NAV_ITEMS.map((item) => {
+            const active = activeView === item.id
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveView(item.id)}
+                title={item.label}
+                className={`
+                  relative flex items-center justify-center h-11 rounded-lg mx-1 transition-all duration-200
+                  ${active ? 'bg-white/5 text-[#4ade80]' : 'text-white/40 hover:text-white/70 hover:bg-white/5'}
+                `}
+              >
+                {active && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-[#4ade80]" />
+                )}
+                <item.icon />
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 min-h-0">
+          {activeView === 'timer' ? (
+            <div className="h-full overflow-y-auto flex flex-col items-center justify-center py-6">
+              <TimerDisplay />
+            </div>
+          ) : (
+            <div className="h-full overflow-y-auto p-6 flex justify-center">
+              <div className="w-full max-w-3xl">{renderView()}</div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Scheduled session toast */}
       {scheduledStarting && (
-        <div className="absolute top-4 right-4 z-50 flex items-center gap-2 rounded-lg bg-[#1a2e1f] border border-[#4ade80]/30 px-4 py-2.5 shadow-lg">
+        <div className="absolute top-12 right-4 z-50 flex items-center gap-2 rounded-lg bg-[#1a2e1f] border border-[#4ade80]/30 px-4 py-2.5 shadow-lg">
           <span className="text-[#4ade80]">🌿</span>
           <span className="text-sm text-white">
             Session starting in 5s... ({scheduledStarting.totalMin} min)
