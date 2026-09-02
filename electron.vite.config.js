@@ -10,7 +10,8 @@ export default defineConfig({
       rollupOptions: {
         input: {
           index: resolve(__dirname, 'electron/main.js')
-        }
+        },
+        external: ['electron']
       }
     }
   },
@@ -20,7 +21,8 @@ export default defineConfig({
       rollupOptions: {
         input: {
           preload: resolve(__dirname, 'electron/preload.js')
-        }
+        },
+        external: ['electron']
       }
     }
   },

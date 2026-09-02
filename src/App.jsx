@@ -14,19 +14,22 @@ function App() {
   const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
-    window.electronAPI.on('show:onboarding', () => setShowOnboarding(true))
+    const offs = []
+
+    offs.push(window.electronAPI.on('show:onboarding', () => setShowOnboarding(true)))
 
     // Only the main window hosts onboarding; floating/lockscreen have their own routes
-    if (getWindowRoute()) return
-    window.electronAPI.invoke('settings:get').then((settings) => {
-      if (settings && !settings.onboardingDone) setShowOnboarding(true)
-    }).catch(() => {})
+    if (!getWindowRoute()) {
+      window.electronAPI.invoke('settings:get').then((settings) => {
+        if (settings && !settings.onboardingDone) setShowOnboarding(true)
+      }).catch(() => {})
+    }
 
-    window.electronAPI.on('timer:tick', (payload) => {
+    offs.push(window.electronAPI.on('timer:tick', (payload) => {
       useTimerStore.getState().updateTick(payload)
-    })
+    }))
 
-    window.electronAPI.on('timer:phase-change', (payload) => {
+    offs.push(window.electronAPI.on('timer:phase-change', (payload) => {
       const state = useTimerStore.getState()
       state.updatePhase(payload)
 
@@ -38,20 +41,22 @@ function App() {
         audioPlayer.stopLofi()
         audioPlayer.playAlarm()
       }
-    })
+    }))
 
-    window.electronAPI.on('timer:complete', (payload) => {
+    offs.push(window.electronAPI.on('timer:complete', (payload) => {
       audioPlayer.stopLofi()
       audioPlayer.playAlarm()
       useTimerStore.getState().setComplete(payload)
-    })
+    }))
 
-    window.electronAPI.on('session:scheduled-starting', (cfg) => {
+    offs.push(window.electronAPI.on('session:scheduled-starting', (cfg) => {
       const state = useTimerStore.getState()
       state.setConfig(cfg)
       // Show a toast/banner if main window is open: "Session starting in 5s..."
       state.setScheduledStarting(cfg)
-    })
+    }))
+
+    return () => offs.forEach((off) => off && off())
   }, [])
 
   useEffect(() => {

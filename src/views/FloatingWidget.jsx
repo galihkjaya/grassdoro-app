@@ -22,8 +22,9 @@ export default function FloatingWidget() {
   const clickTimeout = useRef(null)
 
   useEffect(() => {
-    window.electronAPI.on('timer:state', ({ status: next }) => setStatus(next))
+    const off = window.electronAPI.on('timer:state', ({ status: next }) => setStatus(next))
     return () => {
+      if (off) off()
       if (clickTimeout.current) clearTimeout(clickTimeout.current)
     }
   }, [])

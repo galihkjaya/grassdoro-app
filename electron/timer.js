@@ -28,13 +28,18 @@ export class PomodoroTimer {
   }
 
   start() {
+    // Always clear existing interval before creating new
+    if (this.intervalId) {
+      clearInterval(this.intervalId)
+      this.intervalId = null
+    }
     this.timeLeft = this.focusSeconds
     this.phase = 'focus'
     this.sessionCount = 0
     this.totalElapsed = 0
     this.focusElapsed = 0
     this.onTick(this.timeLeft, this.phase, this.sessionCount)
-    this._startInterval()
+    this.intervalId = setInterval(() => this._tick(), 1000)
   }
 
   pause() {
@@ -46,7 +51,7 @@ export class PomodoroTimer {
 
   resume() {
     if (!this.intervalId && this.timeLeft > 0) {
-      this._startInterval()
+      this.intervalId = setInterval(() => this._tick(), 1000)
     }
   }
 
@@ -55,14 +60,12 @@ export class PomodoroTimer {
       clearInterval(this.intervalId)
       this.intervalId = null
     }
-    this.timeLeft = this.focusSeconds
+    // Reset all state
+    this.timeLeft = 0
     this.phase = 'focus'
     this.sessionCount = 0
     this.totalElapsed = 0
-  }
-
-  _startInterval() {
-    this.intervalId = setInterval(() => this._tick(), 1000)
+    this.focusElapsed = 0
   }
 
   _tick() {

@@ -1,4 +1,5 @@
 import { exec } from 'child_process'
+import { safeSend } from './safeSend.js'
 
 let deps = {}
 
@@ -19,13 +20,11 @@ function run(command) {
 }
 
 function notifyUnsupported(enabled) {
-  const mainWindow = getMainWindow()
-  mainWindow?.webContents.send('dnd:status', { enabled, platform: 'win32', supported: false })
+  safeSend(getMainWindow(), 'dnd:status', { enabled, platform: 'win32', supported: false })
 }
 
 function sendStatus(enabled) {
-  const mainWindow = getMainWindow()
-  mainWindow?.webContents.send('dnd:status', { enabled, platform: process.platform, supported: true })
+  safeSend(getMainWindow(), 'dnd:status', { enabled, platform: process.platform, supported: true })
 }
 
 export function enableDND() {

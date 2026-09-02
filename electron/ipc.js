@@ -1,13 +1,15 @@
 import { app, ipcMain, Notification, shell } from 'electron'
 import { PomodoroTimer } from './timer.js'
-import { cancelPrayerSchedules, fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts, resumeAfterPrayer } from './prayer.js'
+import { cancelPrayerSchedules, fetchPrayerTimes, getPrayerTimes, schedulePrayerAlerts } from './prayer.js'
 import { enableDND, disableDND } from './dnd.js'
 
 import { setupScheduledSessions } from './scheduleManager.js'
 import { setAutoLaunch, getAutoLaunch } from './autolaunch.js'
+import { safeSend } from './safeSend.js'
 
 let timer = null
 let timerStatus = 'idle'
+let ipcInitialized = false
 
 const timerControls = {
   start: () => {},
@@ -55,12 +57,20 @@ function logSession(hooks, payload) {
 
 function sendToAll(getWindows, channel, payload) {
   const { mainWindow, floatingWindow, lockscreenWindow } = getWindows()
-  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload)
-  if (floatingWindow && !floatingWindow.isDestroyed()) floatingWindow.webContents.send(channel, payload)
-  if (lockscreenWindow && !lockscreenWindow.isDestroyed()) lockscreenWindow.webContents.send(channel, payload)
+  safeSend(mainWindow, channel, payload)
+  safeSend(floatingWindow, channel, payload)
+  safeSend(lockscreenWindow, channel, payload)
 }
 
 export function initializeIpc(getWindows, hooks = {}) {
+  // Register IPC handlers exactly once — a second call would duplicate
+  // every ipcMain.handle/on listener and leak on each re-init.
+  if (ipcInitialized) {
+    console.warn('initializeIpc called twice — skipping duplicate IPC registration')
+    return
+  }
+  ipcInitialized = true
+
   const notifyState = (status) => {
     timerStatus = status
     sendToAll(getWindows, 'timer:state', { status })
@@ -343,10 +353,6 @@ export function initializeIpc(getWindows, hooks = {}) {
       hooks.onPrayerTime?.({ prayerName, durationMin: dur })
     })
     return { success: true }
-  })
-
-  ipcMain.on('prayer:done', () => {
-    resumeAfterPrayer()
   })
 
   ipcMain.handle('schedule:set', (event, scheduleConfig) => {
