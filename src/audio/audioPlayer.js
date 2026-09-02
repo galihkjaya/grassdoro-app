@@ -58,7 +58,12 @@ class AudioPlayer {
   }
 
   playAlarm() {
-    this.alarmSound?.stop()
+    // Unload the previous alarm so Howler doesn't retain its audio buffer
+    if (this.alarmSound) {
+      this.alarmSound.stop()
+      this.alarmSound.unload()
+      this.alarmSound = null
+    }
     this.alarmSound = new Howl({
       src: [alarmUrl],
       volume: this.volume,

@@ -3,10 +3,11 @@ import { extname, join } from 'path'
 import { existsSync, readdirSync } from 'fs'
 import Store from 'electron-store'
 import { initializeIpc, getTimerControls } from './ipc.js'
-import { initPrayer, getPrayerTimes, schedulePrayerAlerts, triggerPrayerInterrupt } from './prayer.js'
-import { initScheduleManager, setupScheduledSessions } from './scheduleManager.js'
+import { initPrayer, getPrayerTimes, schedulePrayerAlerts, triggerPrayerInterrupt, cancelPrayerSchedules } from './prayer.js'
+import { initScheduleManager, setupScheduledSessions, cancelScheduledSessions } from './scheduleManager.js'
 import { initAutoLaunch } from './autolaunch.js'
 import { initDnd, disableDND } from './dnd.js'
+import { safeSend } from './safeSend.js'
 
 let mainWindow = null
 let floatingWindow = null
@@ -18,6 +19,13 @@ let defaultTrayIcon = null
 let timerActive = false
 let secondaryLockscreens = []
 let lockscreenIsActive = false
+let mainIpcRegistered = false
+
+// Reusable tray canvas — created once, redrawn every tick instead of
+// allocating a new canvas + nativeImage per second (memory churn).
+let trayCanvas = null
+let trayCtx = null
+let canvasModulePromise = null
 
 function isDev() {
   return process.env['ELECTRON_RENDERER_URL']
@@ -43,29 +51,33 @@ function formatTime(totalSeconds) {
   return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
 }
 
-async function renderTimerImage(text) {
-  try {
-    const { createCanvas } = await import('canvas')
-    const fontSize = 32
-    const probe = createCanvas(1, 1)
-    const probeCtx = probe.getContext('2d')
-    probeCtx.font = `bold ${fontSize}px monospace`
-    const width = Math.max(16, Math.ceil(probeCtx.measureText(text).width) + 12)
-    const height = 40
-
-    const canvas = createCanvas(width, height)
-    const ctx = canvas.getContext('2d')
-    ctx.fillStyle = '#111111'
-    ctx.fillRect(0, 0, width, height)
-    ctx.fillStyle = '#4ade80'
-    ctx.font = `bold ${fontSize}px monospace`
-    ctx.textBaseline = 'middle'
-    ctx.fillText(text, 6, height / 2 + 1)
-
-    return nativeImage.createFromBuffer(canvas.toBuffer('image/png'))
-  } catch {
-    return null
+function getCanvasModule() {
+  if (!canvasModulePromise) {
+    canvasModulePromise = import('canvas').catch(() => null)
   }
+  return canvasModulePromise
+}
+
+async function initTrayCanvas() {
+  if (trayCanvas) return true
+  const { createCanvas } = (await getCanvasModule()) || {}
+  if (!createCanvas) return false
+  trayCanvas = createCanvas(96, 40)
+  trayCtx = trayCanvas.getContext('2d')
+  trayCtx.font = 'bold 28px monospace'
+  trayCtx.textBaseline = 'middle'
+  return true
+}
+
+async function renderTrayImage(timeString) {
+  if (!(await initTrayCanvas())) return null
+  // Redraw on the single reused canvas
+  trayCtx.clearRect(0, 0, trayCanvas.width, trayCanvas.height)
+  trayCtx.fillStyle = '#111111'
+  trayCtx.fillRect(0, 0, trayCanvas.width, trayCanvas.height)
+  trayCtx.fillStyle = '#4ade80'
+  trayCtx.fillText(timeString, 6, trayCanvas.height / 2 + 1)
+  return nativeImage.createFromBuffer(trayCanvas.toBuffer('image/png'))
 }
 
 function createTray() {
@@ -82,12 +94,14 @@ export async function updateTrayTitle(timeLeft, phase) {
   if (!tray || tray.isDestroyed()) return
   const timeString = formatTime(timeLeft)
   try {
-    const image = await renderTimerImage(timeString)
-    tray.setImage(image || defaultTrayIcon)
-    tray.setToolTip(`${phase.toUpperCase()} — ${timeString}`)
-    tray.setTitle(timeString)
+    const image = await renderTrayImage(timeString)
+    if (!tray.isDestroyed()) {
+      tray.setImage(image || defaultTrayIcon)
+      tray.setToolTip(`${phase.toUpperCase()} — ${timeString}`)
+      tray.setTitle(timeString)
+    }
   } catch {
-    tray.setImage(defaultTrayIcon)
+    if (!tray.isDestroyed()) tray.setImage(defaultTrayIcon)
   }
 }
 
@@ -165,7 +179,8 @@ function createMainWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: join(__dirname, 'preload.js')
+      sandbox: false,
+      preload: join(__dirname, '../preload/preload.js')
     }
   })
 
@@ -185,7 +200,7 @@ function createMainWindow() {
 
     // First launch: show the onboarding wizard
     if (store && !store.get('onboardingDone', false)) {
-      mainWindow.webContents.send('show:onboarding')
+      safeSend(mainWindow, 'show:onboarding', undefined)
     }
   })
 }
@@ -206,7 +221,8 @@ function createFloatingWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: join(__dirname, 'preload.js')
+      sandbox: false,
+      preload: join(__dirname, '../preload/preload.js')
     }
   })
 
@@ -252,7 +268,8 @@ function createLockscreenWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
-      preload: join(__dirname, 'preload.js')
+      sandbox: false,
+      preload: join(__dirname, '../preload/preload.js')
     }
   })
 
@@ -321,7 +338,7 @@ function showLockscreen(type, data = {}) {
   createSecondaryLockscreens()
 
   if (lockscreenWindow && !lockscreenWindow.isDestroyed()) {
-    lockscreenWindow.webContents.send('lockscreen:type', { type, ...data })
+    safeSend(lockscreenWindow, 'lockscreen:type', { type, ...data })
     lockscreenWindow.show()
     lockscreenWindow.focus()
     lockscreenWindow.moveTop()
@@ -454,10 +471,14 @@ app.whenReady().then(() => {
 
   mainWindow.on('show', updateFloatingVisibility)
   mainWindow.on('hide', updateFloatingVisibility)
-  setupFloatingIpc()
-  setupLockscreenIpc()
-  setupEmergencyExit()
-  setupAudioIpc()
+
+  if (!mainIpcRegistered) {
+    mainIpcRegistered = true
+    setupFloatingIpc()
+    setupLockscreenIpc()
+    setupEmergencyExit()
+    setupAudioIpc()
+  }
 
   if (!isGnomeDesktop()) {
     createTray()
@@ -499,7 +520,15 @@ app.whenReady().then(() => {
 })
 
 app.on('before-quit', () => {
+  // Full app cleanup: cancel scheduled/pending sessions, stop the running
+  // timer (persists partial focus to store), re-enable DND, drop shortcuts.
+  cancelScheduledSessions()
+  cancelPrayerSchedules()
+  try {
+    getTimerControls().stop()
+  } catch {}
   disableDND()
+  timerActive = false
 })
 
 app.on('will-quit', () => {

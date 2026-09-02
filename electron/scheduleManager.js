@@ -1,8 +1,10 @@
 import schedule from 'node-schedule'
 import { Notification } from 'electron'
+import { safeSend } from './safeSend.js'
 
 let deps = {}
 let scheduledJobs = {}
+let pendingStarts = new Set()
 
 export function initScheduleManager(injectedDeps = {}) {
   deps = injectedDeps
@@ -23,13 +25,21 @@ function isGNOME() {
 //   musicEnabled: boolean,
 //   prayerEnabled: boolean
 // }
-export function setupScheduledSessions(scheduleConfig) {
+export function cancelScheduledSessions() {
   Object.values(scheduledJobs).forEach((job) => {
     try {
       job.cancel()
     } catch {}
   })
   scheduledJobs = {}
+
+  // Cancel any in-flight 5s auto-start countdowns
+  pendingStarts.forEach((t) => clearTimeout(t))
+  pendingStarts.clear()
+}
+
+export function setupScheduledSessions(scheduleConfig) {
+  cancelScheduledSessions()
 
   if (!Array.isArray(scheduleConfig)) return
 
@@ -66,14 +76,15 @@ export function startScheduledSession(cfg) {
 
   // Send IPC to renderer to update UI state even if window is hidden
   const mainWindow = deps.getMainWindow?.()
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('session:scheduled-starting', cfg)
-  }
+  safeSend(mainWindow, 'session:scheduled-starting', cfg)
 
-  // Wait 5 seconds then auto-start timer (gives user chance to cancel)
-  setTimeout(() => {
+  // Wait 5 seconds then auto-start timer (gives user chance to cancel).
+  // Track the handle so a reschedule or app quit cancels the pending start.
+  const timeout = setTimeout(() => {
+    pendingStarts.delete(timeout)
     createAndStartTimer(cfg)
   }, 5000)
+  pendingStarts.add(timeout)
 }
 
 export function createAndStartTimer(cfg) {

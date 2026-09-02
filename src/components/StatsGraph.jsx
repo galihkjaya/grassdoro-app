@@ -47,9 +47,12 @@ export default function StatsGraph() {
 
   useEffect(() => {
     fetchStats()
-    window.electronAPI.on('timer:complete', () => {
+    const off = window.electronAPI.on('timer:complete', () => {
       fetchStats()
     })
+    return () => {
+      if (off) off()
+    }
   }, [])
 
   useEffect(() => {

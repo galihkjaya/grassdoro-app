@@ -73,7 +73,7 @@ export default function Lockscreen() {
   const doneRef = useRef(false)
 
   useEffect(() => {
-    window.electronAPI.on('lockscreen:type', (payload) => {
+    const off = window.electronAPI.on('lockscreen:type', (payload) => {
       const type = typeof payload === 'string' ? payload : payload?.type
       doneRef.current = false
 
@@ -87,6 +87,9 @@ export default function Lockscreen() {
       }
       setMode(type === 'prayer' ? 'prayer' : 'break')
     })
+    return () => {
+      if (off) off()
+    }
   }, [])
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import schedule from 'node-schedule'
+import { safeSend } from './safeSend.js'
 
 const PRAYER_NAMES = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']
 
@@ -16,9 +17,7 @@ export function triggerPrayerInterrupt(prayerName, durationMin) {
   } catch {}
 
   const mainWindow = deps.getMainWindow?.()
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('audio:stop-lofi')
-  }
+  safeSend(mainWindow, 'audio:stop-lofi', undefined)
 
   deps.showLockscreen?.('prayer', { prayerName, durationMin })
 }
@@ -31,9 +30,7 @@ export function resumeAfterPrayer() {
   } catch {}
 
   const mainWindow = deps.getMainWindow?.()
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('audio:resume-lofi')
-  }
+  safeSend(mainWindow, 'audio:resume-lofi', undefined)
 }
 
 function todayKey() {
